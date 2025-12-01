@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'side_menu.dart';
 
@@ -18,10 +19,47 @@ class UniBazaarApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.green),
         useMaterial3: true,
       ),
-      home: const HomeScreen(),
+      home: const SplashScreen(), // start with splash
     );
   }
 }
+
+// ---------- SPLASH SCREEN ----------
+
+class SplashScreen extends StatefulWidget {
+  const SplashScreen({super.key});
+
+  @override
+  State<SplashScreen> createState() => _SplashScreenState();
+}
+
+class _SplashScreenState extends State<SplashScreen> {
+  @override
+  void initState() {
+    super.initState();
+    Timer(const Duration(seconds: 2), () {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const HomeScreen()),
+      );
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: Center(
+        child: Image.asset(
+          'assets/images/unibazaar_splash.jpeg', // your JPEG
+          fit: BoxFit.contain,
+        ),
+      ),
+    );
+  }
+}
+
+// ---------- EXISTING HOME SCREEN ----------
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -63,9 +101,7 @@ class _HomeScreenState extends State<HomeScreen>
     return Scaffold(
       body: Stack(
         children: [
-          // ----------------------------
           // MAIN HOME CONTENT
-          // ----------------------------
           SafeArea(
             child: ListView(
               padding: const EdgeInsets.all(16),
@@ -121,9 +157,7 @@ class _HomeScreenState extends State<HomeScreen>
             ),
           ),
 
-          // ----------------------------
-          // DARK OVERLAY (tap to close)
-          // ----------------------------
+          // DARK OVERLAY
           if (_isMenuOpen)
             AnimatedBuilder(
               animation: _slide,
@@ -131,16 +165,12 @@ class _HomeScreenState extends State<HomeScreen>
                 opacity: _slide.value * 1,
                 child: GestureDetector(
                   onTap: _closeMenu,
-                  child: Container(
-                    color: Colors.black.withOpacity(0.4),
-                  ),
+                  child: Container(color: Colors.black.withOpacity(0.4)),
                 ),
               ),
             ),
 
-          // ----------------------------
           // SLIDING SIDE MENU
-          // ----------------------------
           AnimatedBuilder(
             animation: _slide,
             builder: (_, __) {
@@ -166,20 +196,20 @@ class _PlaceholderRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     Widget card() => Container(
-          height: 140,
-          decoration: BoxDecoration(
-            color: Colors.grey.shade300,
-            borderRadius: BorderRadius.circular(12),
-          ),
-        );
+      height: 140,
+      decoration: BoxDecoration(
+        color: Colors.grey.shade300,
+        borderRadius: BorderRadius.circular(12),
+      ),
+    );
 
     Widget line() => Container(
-          height: 12,
-          decoration: BoxDecoration(
-            color: Colors.grey.shade300,
-            borderRadius: BorderRadius.circular(8),
-          ),
-        );
+      height: 12,
+      decoration: BoxDecoration(
+        color: Colors.grey.shade300,
+        borderRadius: BorderRadius.circular(8),
+      ),
+    );
 
     return Row(
       children: [
