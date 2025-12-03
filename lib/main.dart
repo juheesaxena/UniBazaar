@@ -1,8 +1,30 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_database/firebase_database.dart';
+
+import 'auth/phone_signup_screen.dart';
+import 'auth/phone_login_screen.dart';
+import 'firebase_options.dart';
 import 'side_menu.dart';
 
-void main() {
+// Firebase singletons (optional)
+final FirebaseAuth auth = FirebaseAuth.instance;
+final FirebaseDatabase db = FirebaseDatabase.instanceFor(
+  app: Firebase.app(),
+  databaseURL:
+      'https://unibazaar-73dd2-default-rtdb.asia-southeast1.firebasedatabase.app',
+);
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  // TEMP: force sign‑out so splash goes to /login while developing
+  await FirebaseAuth.instance.signOut();
+
   runApp(const UniBazaarApp());
 }
 
@@ -19,7 +41,13 @@ class UniBazaarApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.green),
         useMaterial3: true,
       ),
-      home: const SplashScreen(), // start with splash
+      initialRoute: '/splash',
+      routes: {
+        '/splash': (_) => const SplashScreen(),
+        '/login': (_) => const PhoneLoginScreen(),
+        '/signup': (_) => const PhoneSignUpScreen(),
+        '/home': (_) => const HomeScreen(),
+      },
     );
   }
 }
@@ -37,11 +65,14 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    Timer(const Duration(seconds: 2), () {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const HomeScreen()),
-      );
+    Timer(const Duration(seconds: 2), () async {
+      if (!mounted) return;
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        Navigator.pushReplacementNamed(context, '/home');
+      } else {
+        Navigator.pushReplacementNamed(context, '/login');
+      }
     });
   }
 
@@ -51,7 +82,7 @@ class _SplashScreenState extends State<SplashScreen> {
       backgroundColor: Colors.white,
       body: Center(
         child: Image.asset(
-          'assets/images/unibazaar_splash.jpeg', // your JPEG
+          'assets/images/unibazaar_splash.jpeg',
           fit: BoxFit.contain,
         ),
       ),
@@ -59,7 +90,7 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 }
 
-// ---------- EXISTING HOME SCREEN ----------
+// ---------- HOME SCREEN ----------
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -74,6 +105,9 @@ class _HomeScreenState extends State<HomeScreen>
   late final Animation<double> _slide;
   bool _isMenuOpen = false;
 
+  String? _userName;
+  String? _phone;
+
   @override
   void initState() {
     super.initState();
@@ -82,6 +116,28 @@ class _HomeScreenState extends State<HomeScreen>
       duration: const Duration(milliseconds: 250),
     );
     _slide = CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic);
+
+    _loadUserProfile();
+  }
+
+  Future<void> _loadUserProfile() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final database = FirebaseDatabase.instanceFor(
+      app: Firebase.app(),
+      databaseURL:
+          'https://unibazaar-73dd2-default-rtdb.asia-southeast1.firebasedatabase.app',
+    );
+
+    final snap = await database.ref('users/${user.uid}').get();
+    if (!snap.exists) return;
+
+    final data = Map<String, dynamic>.from(snap.value as Map);
+    setState(() {
+      _userName = data['name'] as String?;
+      _phone = data['phone'] as String?;
+    });
   }
 
   void _openMenu() {
@@ -96,7 +152,11 @@ class _HomeScreenState extends State<HomeScreen>
 
   @override
   Widget build(BuildContext context) {
-    double menuWidth = MediaQuery.of(context).size.width * 0.78;
+    final double menuWidth = MediaQuery.of(context).size.width * 0.78;
+
+    final String avatarInitial = (_userName != null && _userName!.isNotEmpty)
+        ? _userName![0].toUpperCase()
+        : 'U';
 
     return Scaffold(
       body: Stack(
@@ -106,7 +166,6 @@ class _HomeScreenState extends State<HomeScreen>
             child: ListView(
               padding: const EdgeInsets.all(16),
               children: [
-                // Top Row
                 Row(
                   children: [
                     GestureDetector(
@@ -123,32 +182,26 @@ class _HomeScreenState extends State<HomeScreen>
                     ),
                     const SizedBox(width: 12),
                     const Text(
-                      "UNIBAZAAR",
+                      'UNIBAZAAR',
                       style: TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                     const Spacer(),
-                    const CircleAvatar(child: Text("A")),
+                    CircleAvatar(child: Text(avatarInitial)),
                   ],
                 ),
-
                 const SizedBox(height: 30),
-
-                // HOT DEALS
                 const Text(
-                  "Hot Deals",
+                  'Hot Deals',
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
                 ),
                 const SizedBox(height: 12),
                 const _PlaceholderRow(),
-
                 const SizedBox(height: 30),
-
-                // NEWLY LISTED
                 const Text(
-                  "Newly Listed",
+                  'Newly Listed',
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
                 ),
                 const SizedBox(height: 12),
@@ -162,7 +215,7 @@ class _HomeScreenState extends State<HomeScreen>
             AnimatedBuilder(
               animation: _slide,
               builder: (_, __) => Opacity(
-                opacity: _slide.value * 1,
+                opacity: _slide.value,
                 child: GestureDetector(
                   onTap: _closeMenu,
                   child: Container(color: Colors.black.withOpacity(0.4)),
@@ -179,7 +232,11 @@ class _HomeScreenState extends State<HomeScreen>
                 offset: Offset(offset, 0),
                 child: SizedBox(
                   width: menuWidth,
-                  child: SideMenu(onClose: _closeMenu),
+                  child: SideMenu(
+                    onClose: _closeMenu,
+                    userName: _userName,
+                    phone: _phone,
+                  ),
                 ),
               );
             },

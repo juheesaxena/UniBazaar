@@ -2,10 +2,16 @@ import 'package:flutter/material.dart';
 
 class SideMenu extends StatelessWidget {
   final VoidCallback onClose;
-  const SideMenu({super.key, required this.onClose});
+  final String? userName;
+  final String? phone;
+
+  const SideMenu({super.key, required this.onClose, this.userName, this.phone});
 
   @override
   Widget build(BuildContext context) {
+    final displayName = userName ?? 'Guest';
+    final displayPhone = phone ?? '';
+
     return Material(
       color: const Color(0xFFB7DFA3), // Light green background
       child: SafeArea(
@@ -15,24 +21,20 @@ class SideMenu extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // HEADER
-              const Text(
-                "Arpit Singh",
-                style: TextStyle(
+              Text(
+                displayName,
+                style: const TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              const Text(
-                "9876543210",
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.white70,
-                ),
+              Text(
+                displayPhone,
+                style: const TextStyle(fontSize: 16, color: Colors.white70),
               ),
 
               const SizedBox(height: 20),
               Divider(color: Colors.white70),
-
               const SizedBox(height: 20),
 
               // MENU ITEMS
@@ -50,11 +52,8 @@ class SideMenu extends StatelessWidget {
                   SizedBox(width: 10),
                   Text(
                     "Settings",
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  )
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                  ),
                 ],
               ),
 
@@ -71,10 +70,7 @@ class SideMenu extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 10),
       child: Text(
         name,
-        style: const TextStyle(
-          fontSize: 18,
-          fontWeight: FontWeight.w600,
-        ),
+        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
       ),
     );
   }

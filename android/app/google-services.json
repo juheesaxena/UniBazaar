@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1087063785464",
+    "project_id": "unibazaar-73dd2",
+    "storage_bucket": "unibazaar-73dd2.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1087063785464:android:9e8e9dbdbb9b865a1d200d",
+        "android_client_info": {
+          "package_name": "com.example.unibazaar"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDSIHqlAkiktoG3_C8B_e5uCl1-wN9kMhg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
