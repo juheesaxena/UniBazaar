@@ -9,6 +9,7 @@ import 'auth/phone_signup_screen.dart';
 import 'auth/phone_login_screen.dart';
 import 'firebase_options.dart';
 import 'side_menu.dart';
+import 'search_screen.dart';
 
 // Firebase singletons (optional)
 final FirebaseAuth auth = FirebaseAuth.instance;
@@ -189,6 +190,18 @@ class _HomeScreenState extends State<HomeScreen>
                       ),
                     ),
                     const Spacer(),
+                    IconButton(
+                      icon: const Icon(Icons.search),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                SearchScreen(avatarInitial: avatarInitial),
+                          ),
+                        );
+                      },
+                    ),
                     CircleAvatar(child: Text(avatarInitial)),
                   ],
                 ),
