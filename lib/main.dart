@@ -182,13 +182,16 @@ class _HomeScreenState extends State<HomeScreen>
                       ),
                     ),
                     const SizedBox(width: 12),
-                    const Text(
-                      'UNIBAZAAR',
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
+
+                    // REPLACE TEXT WITH LOGO IMAGE
+                    SizedBox(
+                      height: 28, // similar visual height to the text
+                      child: Image.asset(
+                        'assets/images/unibazaar_splash.jpeg',
+                        fit: BoxFit.contain,
                       ),
                     ),
+
                     const Spacer(),
                     IconButton(
                       icon: const Icon(Icons.search),

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'search_screen.dart';
 
 class SideMenu extends StatelessWidget {
   final VoidCallback onClose;
@@ -11,6 +13,9 @@ class SideMenu extends StatelessWidget {
   Widget build(BuildContext context) {
     final displayName = userName ?? 'Guest';
     final displayPhone = phone ?? '';
+    final avatarInitial = displayName.isNotEmpty
+        ? displayName[0].toUpperCase()
+        : 'U';
 
     return Material(
       color: const Color(0xFFB7DFA3), // Light green background
@@ -34,27 +39,58 @@ class SideMenu extends StatelessWidget {
               ),
 
               const SizedBox(height: 20),
-              Divider(color: Colors.white70),
+              const Divider(color: Colors.white70),
               const SizedBox(height: 20),
 
               // MENU ITEMS
               _menuItem("Browse by College"),
               _menuItem("Filters"),
-              _menuItem("Categories"),
+              _menuItem(
+                "Categories",
+                onTap: () {
+                  onClose(); // close drawer
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          SearchScreen(avatarInitial: avatarInitial),
+                    ),
+                  );
+                },
+              ),
               _menuItem("Sell your item"),
               _menuItem("Saves"),
 
               const Spacer(),
 
-              Row(
-                children: const [
-                  Icon(Icons.settings, color: Colors.black),
-                  SizedBox(width: 10),
-                  Text(
-                    "Settings",
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+              // LOG OUT BUTTON
+              GestureDetector(
+                onTap: () async {
+                  onClose(); // close drawer
+                  await FirebaseAuth.instance.signOut();
+                  Navigator.pushNamedAndRemoveUntil(
+                    context,
+                    '/login',
+                    (route) => false,
+                  );
+                },
+                child: Container(
+                  width: double.infinity,
+                  height: 52,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(26),
                   ),
-                ],
+                  alignment: Alignment.center,
+                  child: const Text(
+                    'Log out',
+                    style: TextStyle(
+                      color: Color(0xFFFF7F7F), // soft red
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
               ),
 
               const SizedBox(height: 20),
@@ -65,12 +101,15 @@ class SideMenu extends StatelessWidget {
     );
   }
 
-  Widget _menuItem(String name) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10),
-      child: Text(
-        name,
-        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+  Widget _menuItem(String name, {VoidCallback? onTap}) {
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        child: Text(
+          name,
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+        ),
       ),
     );
   }
