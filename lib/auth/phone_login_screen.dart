@@ -42,51 +42,103 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 60),
-            const Text(
-              'Log in',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 24),
-            TextField(
-              controller: _emailCtrl,
-              keyboardType: TextInputType.emailAddress,
-              decoration: const InputDecoration(labelText: 'Email'),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _passwordCtrl,
-              obscureText: true,
-              decoration: const InputDecoration(labelText: 'Password'),
-            ),
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              height: 48,
-              child: ElevatedButton(
-                onPressed: _loading ? null : _login,
-                child: Text(_loading ? 'Logging in...' : 'Log in'),
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 32),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 80),
+
+              // Logo
+              Center(
+                child: Image.asset(
+                  'assets/images/unibazaar_splash.jpeg',
+                  height: 60,
+                ),
               ),
-            ),
-            if (_error != null) ...[
+
+              const SizedBox(height: 80),
+
+              const Text(
+                'Log in',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 24),
+
+              // Email (placeholder says mobile like screenshot, but uses email)
+              TextField(
+                controller: _emailCtrl,
+                keyboardType: TextInputType.emailAddress,
+                decoration: const InputDecoration(
+                  hintText: 'Enter mobile number',
+                  border: UnderlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Password + forgot password
+              TextField(
+                controller: _passwordCtrl,
+                obscureText: true,
+                decoration: const InputDecoration(
+                  hintText: 'Password',
+                  border: UnderlineInputBorder(),
+                ),
+              ),
               const SizedBox(height: 8),
-              Text(_error!, style: const TextStyle(color: Colors.red)),
-            ],
-            const SizedBox(height: 16),
-            Center(
-              child: TextButton(
-                onPressed: () {
-                  Navigator.pushReplacementNamed(context, '/signup');
-                },
-                child: const Text('New user? Sign up'),
+              Align(
+                alignment: Alignment.centerRight,
+                child: Text(
+                  'Forgot password ?',
+                  style: TextStyle(color: Colors.grey[500], fontSize: 12),
+                ),
               ),
-            ),
-          ],
+              const SizedBox(height: 32),
+
+              // Log in button
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton(
+                  onPressed: _loading ? null : _login,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFAEDC98),
+                    foregroundColor: Colors.black,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                  ),
+                  child: Text(
+                    _loading ? 'Logging in...' : 'Log in',
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                ),
+              ),
+
+              if (_error != null) ...[
+                const SizedBox(height: 8),
+                Text(_error!, style: const TextStyle(color: Colors.red)),
+              ],
+
+              const SizedBox(height: 24),
+
+              Center(
+                child: TextButton(
+                  onPressed: () {
+                    Navigator.pushReplacementNamed(context, '/signup');
+                  },
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.grey[600],
+                    padding: EdgeInsets.zero,
+                  ),
+                  child: const Text('New user? Sign up'),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

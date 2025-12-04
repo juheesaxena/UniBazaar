@@ -46,60 +46,118 @@ class _PhoneSignUpScreenState extends State<PhoneSignUpScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Padding(
-        padding: const EdgeInsets.all(24),
+      backgroundColor: Colors.white,
+      body: SafeArea(
         child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 32),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              const SizedBox(height: 80),
+
+              // Logo row
+              Center(
+                child: Image.asset(
+                  'assets/images/unibazaar_splash.jpeg',
+                  height: 60,
+                ),
+              ),
+
               const SizedBox(height: 60),
+
               const Text(
                 'Sign up',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: 24),
+
+              // Name
               TextField(
                 controller: _nameCtrl,
-                decoration: const InputDecoration(labelText: 'Name'),
+                decoration: const InputDecoration(
+                  hintText: 'Name',
+                  border: UnderlineInputBorder(),
+                ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
+
+              // Email
               TextField(
                 controller: _emailCtrl,
                 keyboardType: TextInputType.emailAddress,
-                decoration: const InputDecoration(labelText: 'Email'),
+                decoration: const InputDecoration(
+                  hintText: 'Email',
+                  border: UnderlineInputBorder(),
+                ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
+
+              // Phone
               TextField(
                 controller: _phoneCtrl,
                 keyboardType: TextInputType.phone,
-                decoration: const InputDecoration(labelText: 'Phone number'),
+                decoration: const InputDecoration(
+                  hintText: 'Mobile number',
+                  border: UnderlineInputBorder(),
+                ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
+
+              // Password
               TextField(
                 controller: _passwordCtrl,
                 obscureText: true,
-                decoration: const InputDecoration(labelText: 'Password'),
+                decoration: const InputDecoration(
+                  hintText: 'Password',
+                  border: UnderlineInputBorder(),
+                ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 32),
+
+              // Sign up button (green, full width)
               SizedBox(
                 width: double.infinity,
                 height: 48,
                 child: ElevatedButton(
                   onPressed: _loading ? null : _signUp,
-                  child: Text(_loading ? 'Signing up...' : 'Sign up'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFAEDC98),
+                    foregroundColor: Colors.black,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                  ),
+                  child: Text(
+                    _loading ? 'Signing up...' : 'Sign up',
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
                 ),
               ),
+
               if (_error != null) ...[
                 const SizedBox(height: 8),
                 Text(_error!, style: const TextStyle(color: Colors.red)),
               ],
-              const SizedBox(height: 16),
+
+              const SizedBox(height: 32),
+
+              // Divider line
+              const Divider(thickness: 0.7),
+
+              const SizedBox(height: 8),
+
+              // Already have account
               Center(
                 child: TextButton(
                   onPressed: () {
                     Navigator.pushReplacementNamed(context, '/login');
                   },
-                  child: const Text('Already have an account? Log in'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.grey[600],
+                    padding: EdgeInsets.zero,
+                  ),
+                  child: const Text('Already have an account ? Log in'),
                 ),
               ),
             ],
