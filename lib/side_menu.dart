@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'search_screen.dart';
+import 'features/sell/create_listing_screen.dart';
 
 class SideMenu extends StatelessWidget {
   final VoidCallback onClose;
@@ -58,7 +59,19 @@ class SideMenu extends StatelessWidget {
                   );
                 },
               ),
-              _menuItem("Sell your item"),
+              _menuItem(
+                "Sell your item",
+                onTap: () {
+                  onClose(); // close drawer
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const CreateListingScreen(),
+                    ),
+                  );
+                },
+              ),
+
               _menuItem("Saves"),
 
               const Spacer(),

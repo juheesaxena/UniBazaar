@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'features/categories/category_listings_screen.dart';
 
 class SearchScreen extends StatelessWidget {
   final String avatarInitial;
@@ -38,14 +39,12 @@ class SearchScreen extends StatelessWidget {
                   CircleAvatar(child: Text(avatarInitial)),
                 ],
               ),
-
               const SizedBox(height: 24),
 
               const Text(
                 'Categories',
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
               ),
-
               const SizedBox(height: 16),
 
               Expanded(
@@ -53,16 +52,85 @@ class SearchScreen extends StatelessWidget {
                   crossAxisCount: 3,
                   mainAxisSpacing: 12,
                   crossAxisSpacing: 12,
-                  children: const [
+                  children: [
                     _CategoryTile(
                       label: 'Electronics',
-                      color: Color(0xFFB8E6FF),
+                      color: const Color(0xFFB8E6FF),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                CategoryListingsScreen(category: 'Electronics'),
+                          ),
+                        );
+                      },
                     ),
-                    _CategoryTile(label: 'Household', color: Color(0xFFFFF3B0)),
-                    _CategoryTile(label: 'Fitness', color: Color(0xFFFFB3B8)),
-                    _CategoryTile(label: 'Beauty', color: Color(0xFFFFB3FF)),
-                    _CategoryTile(label: 'Bicycles', color: Color(0xFFB8FFB8)),
-                    _CategoryTile(label: 'Kitchen', color: Color(0xFFB8C8FF)),
+                    _CategoryTile(
+                      label: 'Household',
+                      color: const Color(0xFFFFF3B0),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                CategoryListingsScreen(category: 'Household'),
+                          ),
+                        );
+                      },
+                    ),
+                    _CategoryTile(
+                      label: 'Fitness',
+                      color: const Color(0xFFFFB3B8),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                CategoryListingsScreen(category: 'Fitness'),
+                          ),
+                        );
+                      },
+                    ),
+                    _CategoryTile(
+                      label: 'Beauty',
+                      color: const Color(0xFFFFB3FF),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                CategoryListingsScreen(category: 'Beauty'),
+                          ),
+                        );
+                      },
+                    ),
+                    _CategoryTile(
+                      label: 'Bicycles',
+                      color: const Color(0xFFB8FFB8),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                CategoryListingsScreen(category: 'Bicycles'),
+                          ),
+                        );
+                      },
+                    ),
+                    _CategoryTile(
+                      label: 'Kitchen',
+                      color: const Color(0xFFB8C8FF),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                CategoryListingsScreen(category: 'Kitchen'),
+                          ),
+                        );
+                      },
+                    ),
                   ],
                 ),
               ),
@@ -77,21 +145,30 @@ class SearchScreen extends StatelessWidget {
 class _CategoryTile extends StatelessWidget {
   final String label;
   final Color color;
+  final VoidCallback onTap;
 
-  const _CategoryTile({required this.label, required this.color, super.key});
+  const _CategoryTile({
+    required this.label,
+    required this.color,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: Center(
-        child: Text(
-          label,
-          style: const TextStyle(fontWeight: FontWeight.w600),
-          textAlign: TextAlign.center,
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(18),
+      child: Container(
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.circular(18),
+        ),
+        child: Center(
+          child: Text(
+            label,
+            style: const TextStyle(fontWeight: FontWeight.w600),
+            textAlign: TextAlign.center,
+          ),
         ),
       ),
     );
