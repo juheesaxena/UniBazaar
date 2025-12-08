@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_database/firebase_database.dart';
 
+import 'product_detail_screen.dart';
+
 class CategoryListingsScreen extends StatelessWidget {
   final String category;
 
@@ -54,19 +56,41 @@ class CategoryListingsScreen extends StatelessWidget {
               final data = entries[index].value as Map<dynamic, dynamic>;
               final productName = (data['productName'] ?? '') as String;
               final description = (data['description'] ?? '') as String;
-              final price = data['price'];
-
-              // NEW: read first image URL from 'images' array
+              final price = (data['price'] as num?)?.toDouble() ?? 0.0;
+              final condition = (data['condition'] ?? 'Good') as String;
+              final negotiable = (data['negotiable'] ?? true) as bool;
+              final college = (data['college'] ?? '') as String; // NEW
               final images = (data['images'] ?? []) as List;
               final thumbUrl = images.isNotEmpty
                   ? images.first as String
                   : null;
 
-              return _ListingTile(
-                productName: productName,
-                description: description,
-                priceText: price != null ? '₹ $price' : '',
-                thumbnailUrl: thumbUrl, // NEW
+              return InkWell(
+                onTap: () {
+                  if (thumbUrl == null) return;
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => ProductDetailScreen(
+                        categoryName: category,
+                        title: productName,
+                        description: description,
+                        price: price,
+                        condition: condition,
+                        imageUrl: thumbUrl,
+                        isNegotiable: negotiable,
+                        college: college, // NEW
+                      ),
+                    ),
+                  );
+                },
+                child: _ListingTile(
+                  productName: productName,
+                  description: description,
+                  priceText: price > 0 ? '₹ $price' : '',
+                  thumbnailUrl: thumbUrl,
+                  college: college, // optional to show in list
+                ),
               );
             },
           );
@@ -80,13 +104,15 @@ class _ListingTile extends StatelessWidget {
   final String productName;
   final String description;
   final String priceText;
-  final String? thumbnailUrl; // NEW
+  final String? thumbnailUrl;
+  final String college; // NEW
 
   const _ListingTile({
     required this.productName,
     required this.description,
     required this.priceText,
-    this.thumbnailUrl, // NEW
+    this.thumbnailUrl,
+    required this.college,
   });
 
   @override
@@ -99,7 +125,6 @@ class _ListingTile extends StatelessWidget {
       ),
       child: Row(
         children: [
-          // NEW: show image if available, otherwise same grey placeholder
           thumbnailUrl != null
               ? ClipRRect(
                   borderRadius: BorderRadius.circular(8),
@@ -136,6 +161,13 @@ class _ListingTile extends StatelessWidget {
                   priceText,
                   style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
+                if (college.isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    college,
+                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                ],
               ],
             ),
           ),

@@ -36,6 +36,10 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
     'Kitchen',
   ];
 
+  // NEW: college field
+  String _selectedCollege = 'MIT';
+  final List<String> _colleges = ['MIT', 'KMC', 'MSAP', 'MSME', 'TAPMI', 'DOC'];
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -136,6 +140,28 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
             ),
             const SizedBox(height: 24),
 
+            // COLLEGE
+            const Text(
+              'College',
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 8),
+            DropdownButtonFormField<String>(
+              value: _selectedCollege,
+              items: _colleges
+                  .map(
+                    (c) => DropdownMenuItem<String>(value: c, child: Text(c)),
+                  )
+                  .toList(),
+              onChanged: (value) {
+                if (value != null) {
+                  setState(() => _selectedCollege = value);
+                }
+              },
+              decoration: const InputDecoration(border: OutlineInputBorder()),
+            ),
+            const SizedBox(height: 24),
+
             // DESCRIPTION
             const Text(
               'Description',
@@ -230,7 +256,7 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                     final priceText = _priceCtrl.text.trim();
 
                     print(
-                      'DATA: $productName | $description | $priceText | $_selectedCategory',
+                      'DATA: $productName | $description | $priceText | $_selectedCategory | $_selectedCollege',
                     );
 
                     if (productName.isEmpty ||
@@ -252,7 +278,7 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
 
                     final ownerPhone = user.phoneNumber ?? '';
 
-                    // Realtime DB (keep)
+                    // Realtime DB
                     final firebaseApp = Firebase.app();
                     final db = FirebaseDatabase.instanceFor(
                       app: firebaseApp,
@@ -262,7 +288,7 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                     final ref = db.ref('listings').push();
                     print('REF PATH: ${ref.path}');
 
-                    // Upload images to Cloudinary (new)
+                    // Upload images to Cloudinary
                     final uploader = const CloudinaryUploader();
                     final List<String> imageUrls = [];
                     for (int i = 0; i < _images.length; i++) {
@@ -271,7 +297,7 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                       imageUrls.add(url);
                     }
 
-                    // Save listing + Cloudinary URLs
+                    // Save listing + Cloudinary URLs + college
                     await ref.set({
                       'productName': productName,
                       'description': description,
@@ -279,6 +305,7 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                       'negotiable': _negotiable,
                       'condition': _condition,
                       'category': _selectedCategory,
+                      'college': _selectedCollege, // NEW FIELD
                       'ownerId': user.uid,
                       'ownerPhone': ownerPhone,
                       'createdAt': DateTime.now().millisecondsSinceEpoch,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'search_screen.dart';
 import 'features/sell/create_listing_screen.dart';
+import 'features/sell/your_listings_screen.dart'; // NEW
 
 class SideMenu extends StatelessWidget {
   final VoidCallback onClose;
@@ -43,11 +44,79 @@ class SideMenu extends StatelessWidget {
               const Divider(color: Colors.white70),
               const SizedBox(height: 20),
 
+              // TOP PILLS: Sell your item / Your listings
+              SizedBox(
+                width: double.infinity,
+                child: Column(
+                  children: [
+                    // Sell your item (white pill)
+                    GestureDetector(
+                      onTap: () {
+                        onClose();
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const CreateListingScreen(),
+                          ),
+                        );
+                      },
+                      child: Container(
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(24),
+                        ),
+                        alignment: Alignment.center,
+                        child: const Text(
+                          'Sell your item',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.black,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    // Your listings (dark pill)
+                    GestureDetector(
+                      onTap: () {
+                        onClose();
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const YourListingsScreen(),
+                          ),
+                        );
+                      },
+                      child: Container(
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: Colors.black87,
+                          borderRadius: BorderRadius.circular(24),
+                        ),
+                        alignment: Alignment.center,
+                        child: const Text(
+                          'Your listings',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 24),
+
               // MENU ITEMS
-              _menuItem("Browse by College"),
-              _menuItem("Filters"),
+              _menuItem('Browse by College'),
+              _menuItem('Filters'),
               _menuItem(
-                "Categories",
+                'Categories',
                 onTap: () {
                   onClose(); // close drawer
                   Navigator.push(
@@ -59,20 +128,7 @@ class SideMenu extends StatelessWidget {
                   );
                 },
               ),
-              _menuItem(
-                "Sell your item",
-                onTap: () {
-                  onClose(); // close drawer
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const CreateListingScreen(),
-                    ),
-                  );
-                },
-              ),
-
-              _menuItem("Saves"),
+              _menuItem('Saves'),
 
               const Spacer(),
 
