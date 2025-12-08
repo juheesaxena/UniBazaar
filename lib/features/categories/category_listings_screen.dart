@@ -147,6 +147,7 @@ class _ListingTile extends StatelessWidget {
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min, // <‑ add this
               children: [
                 Text(
                   productName,
@@ -154,9 +155,9 @@ class _ListingTile extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 2),
                 Text(description, maxLines: 2, overflow: TextOverflow.ellipsis),
-                const SizedBox(height: 4),
+                const SizedBox(height: 2),
                 Text(
                   priceText,
                   style: const TextStyle(fontWeight: FontWeight.bold),
@@ -166,6 +167,8 @@ class _ListingTile extends StatelessWidget {
                   Text(
                     college,
                     style: const TextStyle(fontSize: 12, color: Colors.grey),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ],

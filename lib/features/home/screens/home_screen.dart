@@ -6,11 +6,16 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size; // for responsiveness
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          padding: EdgeInsets.symmetric(
+            horizontal: size.width * 0.04, // 4% of width
+            vertical: size.height * 0.015, // 1.5% of height
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -18,7 +23,6 @@ class HomeScreen extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // Menu Icon
                   Container(
                     height: 40,
                     width: 40,
@@ -28,8 +32,6 @@ class HomeScreen extends StatelessWidget {
                     ),
                     child: const Icon(Icons.menu, size: 22),
                   ),
-
-                  // Logo: UNIBAZAAR
                   Row(
                     children: const [
                       Text(
@@ -51,8 +53,6 @@ class HomeScreen extends StatelessWidget {
                       ),
                     ],
                   ),
-
-                  // Two icons (Circle, Profile)
                   Row(
                     children: [
                       Container(
@@ -82,34 +82,16 @@ class HomeScreen extends StatelessWidget {
                 ],
               ),
 
-              const SizedBox(height: 22),
+              SizedBox(height: size.height * 0.02),
 
-              // Hot Deals Section
               const Text(
-                "Hot Deals",
+                "All Listings",
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: size.height * 0.015),
 
-              Row(
-                children: const [
-                  Expanded(child: PlaceholderCard()),
-                  SizedBox(width: 12),
-                  Expanded(child: PlaceholderCard()),
-                ],
-              ),
-
-              const SizedBox(height: 25),
-
-              // Newly Listed Section
-              const Text(
-                "Newly Listed",
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
-              ),
-              const SizedBox(height: 12),
-
-              SizedBox(
-                height: 180,
+              // List takes remaining height
+              Expanded(
                 child: StreamBuilder<DatabaseEvent>(
                   stream: FirebaseDatabase.instance.ref('listings').onValue,
                   builder: (context, snapshot) {
@@ -134,25 +116,26 @@ class HomeScreen extends StatelessWidget {
                         return bt.compareTo(at); // newest first
                       });
 
-                    final newest = entries.take(4).toList();
-
                     return ListView.separated(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: newest.length,
-                      separatorBuilder: (_, __) => const SizedBox(width: 12),
+                      itemCount: entries.length,
+                      separatorBuilder: (_, __) =>
+                          SizedBox(height: size.height * 0.012),
                       itemBuilder: (context, index) {
                         final listing =
-                            newest[index].value as Map<dynamic, dynamic>;
+                            entries[index].value as Map<dynamic, dynamic>;
                         final description =
                             (listing['description'] ?? '') as String;
                         final price = listing['price'];
 
-                        return SizedBox(
-                          width: MediaQuery.of(context).size.width * 0.4,
-                          child: ListingCard(
-                            description: description,
-                            priceText: price != null ? '$price' : '',
-                          ),
+                        final images = (listing['images'] ?? []) as List;
+                        final thumbUrl = images.isNotEmpty
+                            ? images.first as String
+                            : null;
+
+                        return ListingCard(
+                          description: description,
+                          priceText: price != null ? '$price' : '',
+                          thumbnailUrl: thumbUrl,
                         );
                       },
                     );
@@ -167,88 +150,59 @@ class HomeScreen extends StatelessWidget {
   }
 }
 
-class PlaceholderCard extends StatelessWidget {
-  const PlaceholderCard({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade200,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        children: [
-          // Image area
-          Container(
-            height: 120,
-            decoration: BoxDecoration(
-              color: Colors.grey.shade300,
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-          const SizedBox(height: 12),
-
-          // Three Grey lines
-          Container(
-            height: 12,
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: Colors.grey.shade300,
-              borderRadius: BorderRadius.circular(8),
-            ),
-          ),
-          const SizedBox(height: 6),
-          Container(
-            height: 12,
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: Colors.grey.shade300,
-              borderRadius: BorderRadius.circular(8),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class ListingCard extends StatelessWidget {
   final String description;
   final String priceText;
+  final String? thumbnailUrl;
 
   const ListingCard({
     super.key,
     required this.description,
     required this.priceText,
+    this.thumbnailUrl,
   });
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+
     return Container(
-      padding: const EdgeInsets.all(10),
+      padding: EdgeInsets.all(size.width * 0.03),
       decoration: BoxDecoration(
         color: Colors.grey.shade200,
         borderRadius: BorderRadius.circular(16),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          // Image area placeholder
-          Container(
-            height: 100,
-            decoration: BoxDecoration(
-              color: Colors.grey.shade300,
-              borderRadius: BorderRadius.circular(12),
-            ),
+          // Responsive image (Cloudinary/Firebase URL) or placeholder
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: thumbnailUrl != null
+                ? Image.network(
+                    thumbnailUrl!,
+                    width: size.width * 0.2,
+                    height: size.width * 0.2,
+                    fit: BoxFit.cover,
+                  )
+                : Container(
+                    width: size.width * 0.2,
+                    height: size.width * 0.2,
+                    color: Colors.grey.shade300,
+                  ),
           ),
-          const SizedBox(height: 8),
-          Text(description, maxLines: 2, overflow: TextOverflow.ellipsis),
-          const SizedBox(height: 4),
-          Text(
-            '₹ $priceText',
-            style: const TextStyle(fontWeight: FontWeight.bold),
+          SizedBox(width: size.width * 0.04),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(description, maxLines: 2, overflow: TextOverflow.ellipsis),
+                const SizedBox(height: 4),
+                Text(
+                  '₹ $priceText',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
           ),
         ],
       ),
