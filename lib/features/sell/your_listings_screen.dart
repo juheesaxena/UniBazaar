@@ -195,7 +195,6 @@ class _YourListingTile extends StatelessWidget {
   final bool isExpired;
 
   const _YourListingTile({
-    super.key,
     required this.id,
     required this.data,
     required this.db,

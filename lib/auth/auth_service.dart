@@ -22,11 +22,15 @@ class AuthService {
       email: email,
       password: password,
     );
-    final user = credential.user;
-    if (user == null) {
-      return null;
-    }
 
+    final user = credential.user;
+    if (user == null) return null;
+
+    // 🔥 IMPORTANT — update FirebaseAuth display name
+    await user.updateDisplayName(name);
+    await user.reload();
+
+    // 🔥 Now save the profile in Realtime Database
     await _db.child('users').child(user.uid).set({
       'name': name,
       'email': email,

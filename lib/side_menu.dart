@@ -113,7 +113,6 @@ class SideMenu extends StatelessWidget {
               const SizedBox(height: 24),
 
               // MENU ITEMS
-              _menuItem('Browse by College'),
               _menuItem('Filters'),
               _menuItem(
                 'Categories',

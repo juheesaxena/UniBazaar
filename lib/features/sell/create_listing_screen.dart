@@ -20,6 +20,9 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
   final _descriptionCtrl = TextEditingController();
   final _priceCtrl = TextEditingController();
 
+  // ⭐ NEW SELLER NAME FIELD
+  final _sellerNameCtrl = TextEditingController();
+
   final ImagePicker _picker = ImagePicker();
   final List<XFile> _images = [];
 
@@ -36,7 +39,6 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
     'Kitchen',
   ];
 
-  // NEW: college field
   String _selectedCollege = 'MIT';
   final List<String> _colleges = ['MIT', 'KMC', 'MSAP', 'MSME', 'TAPMI', 'DOC'];
 
@@ -57,12 +59,13 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // PHOTOS
+            // IMAGES
             const Text(
               'Add photos (max 5)',
               style: TextStyle(fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 8),
+
             GestureDetector(
               onTap: () async {
                 if (_images.length >= 5) return;
@@ -71,9 +74,7 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                   source: ImageSource.gallery,
                 );
                 if (picked != null) {
-                  setState(() {
-                    _images.add(picked);
-                  });
+                  setState(() => _images.add(picked));
                 }
               },
               child: Container(
@@ -106,6 +107,7 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                       ),
               ),
             ),
+
             const SizedBox(height: 24),
 
             // PRODUCT NAME
@@ -120,6 +122,21 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
             ),
             const SizedBox(height: 24),
 
+            // ⭐ NEW SELLER NAME FIELD
+            const Text(
+              'Seller Name',
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _sellerNameCtrl,
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                hintText: "Enter your name",
+              ),
+            ),
+            const SizedBox(height: 24),
+
             // CATEGORY
             const Text(
               'Select Category',
@@ -127,15 +144,11 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
             ),
             const SizedBox(height: 8),
             DropdownButtonFormField<String>(
-              value: _selectedCategory,
+              initialValue: _selectedCategory,
               items: _categories
                   .map((cat) => DropdownMenuItem(value: cat, child: Text(cat)))
                   .toList(),
-              onChanged: (value) {
-                if (value != null) {
-                  setState(() => _selectedCategory = value);
-                }
-              },
+              onChanged: (value) => setState(() => _selectedCategory = value!),
               decoration: const InputDecoration(border: OutlineInputBorder()),
             ),
             const SizedBox(height: 24),
@@ -147,17 +160,11 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
             ),
             const SizedBox(height: 8),
             DropdownButtonFormField<String>(
-              value: _selectedCollege,
+              initialValue: _selectedCollege,
               items: _colleges
-                  .map(
-                    (c) => DropdownMenuItem<String>(value: c, child: Text(c)),
-                  )
+                  .map((c) => DropdownMenuItem(value: c, child: Text(c)))
                   .toList(),
-              onChanged: (value) {
-                if (value != null) {
-                  setState(() => _selectedCollege = value);
-                }
-              },
+              onChanged: (value) => setState(() => _selectedCollege = value!),
               decoration: const InputDecoration(border: OutlineInputBorder()),
             ),
             const SizedBox(height: 24),
@@ -184,11 +191,7 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
             TextField(
               controller: _priceCtrl,
               keyboardType: TextInputType.number,
-              decoration: InputDecoration(
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
+              decoration: const InputDecoration(border: OutlineInputBorder()),
             ),
             const SizedBox(height: 24),
 
@@ -197,7 +200,6 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
               'Negotiable',
               style: TextStyle(fontWeight: FontWeight.w600),
             ),
-            const SizedBox(height: 8),
             Row(
               children: [
                 _buildRadioOption('Yes', true),
@@ -212,7 +214,6 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
               'Item Condition',
               style: TextStyle(fontWeight: FontWeight.w600),
             ),
-            const SizedBox(height: 8),
             Wrap(
               spacing: 8,
               runSpacing: 8,
@@ -238,12 +239,8 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                   ),
                 ),
                 onPressed: () async {
-                  print('BUTTON PRESSED');
-
                   try {
                     final user = FirebaseAuth.instance.currentUser;
-                    print('USER: $user');
-
                     if (user == null) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(content: Text('You must be logged in')),
@@ -251,24 +248,19 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                       return;
                     }
 
-                    final productName = _productNameCtrl.text.trim();
-                    final description = _descriptionCtrl.text.trim();
-                    final priceText = _priceCtrl.text.trim();
-
-                    print(
-                      'DATA: $productName | $description | $priceText | $_selectedCategory | $_selectedCollege',
-                    );
-
-                    if (productName.isEmpty ||
-                        description.isEmpty ||
-                        priceText.isEmpty) {
+                    // VALIDATE SELLER NAME
+                    if (_sellerNameCtrl.text.trim().isEmpty) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Please fill all fields')),
+                        const SnackBar(
+                          content: Text('Please enter seller name'),
+                        ),
                       );
                       return;
                     }
 
-                    final price = double.tryParse(priceText);
+                    final sellerName = _sellerNameCtrl.text.trim();
+
+                    final price = double.tryParse(_priceCtrl.text.trim());
                     if (price == null) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(content: Text('Invalid price')),
@@ -276,57 +268,46 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                       return;
                     }
 
-                    final ownerPhone = user.phoneNumber ?? '';
-
-                    // Realtime DB
-                    final firebaseApp = Firebase.app();
                     final db = FirebaseDatabase.instanceFor(
-                      app: firebaseApp,
+                      app: Firebase.app(),
                       databaseURL:
                           'https://unibazaar-73dd2-default-rtdb.asia-southeast1.firebasedatabase.app',
                     );
-                    final ref = db.ref('listings').push();
-                    print('REF PATH: ${ref.path}');
 
-                    // Upload images to Cloudinary
+                    final ref = db.ref('listings').push();
+
+                    // upload images
                     final uploader = const CloudinaryUploader();
-                    final List<String> imageUrls = [];
-                    for (int i = 0; i < _images.length; i++) {
-                      final file = File(_images[i].path);
-                      final url = await uploader.uploadImage(file);
-                      imageUrls.add(url);
+                    final List<String> urls = [];
+                    for (final img in _images) {
+                      urls.add(await uploader.uploadImage(File(img.path)));
                     }
 
-                    // Save listing + Cloudinary URLs + college
+                    // WRITE DATA WITH SELLER NAME FIELD
                     await ref.set({
-                      'productName': productName,
-                      'description': description,
+                      'productName': _productNameCtrl.text.trim(),
+                      'description': _descriptionCtrl.text.trim(),
                       'price': price,
                       'negotiable': _negotiable,
                       'condition': _condition,
                       'category': _selectedCategory,
-                      'college': _selectedCollege, // NEW FIELD
-                      'ownerId': user.uid,
-                      'ownerPhone': ownerPhone,
-                      'createdAt': DateTime.now().millisecondsSinceEpoch,
-                      'images': imageUrls,
-                    });
+                      'college': _selectedCollege,
 
-                    print('WRITE OK');
+                      /// ⭐ ADDED FIELD HERE
+                      'sellerName': sellerName,
+                      'sellerUid': user.uid,
+
+                      'ownerId': user.uid,
+                      'ownerPhone': user.phoneNumber ?? '',
+                      'createdAt': DateTime.now().millisecondsSinceEpoch,
+                      'images': urls,
+                    });
 
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('Listing created')),
                     );
-
-                    _productNameCtrl.clear();
-                    _descriptionCtrl.clear();
-                    _priceCtrl.clear();
-                    _images.clear();
-
                     Navigator.pop(context);
-                  } catch (e, st) {
-                    print('WRITE ERROR: $e');
-                    print(st);
+                  } catch (e) {
                     ScaffoldMessenger.of(
                       context,
                     ).showSnackBar(SnackBar(content: Text('Error: $e')));
@@ -346,14 +327,11 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
 
   Widget _buildRadioOption(String label, bool value) {
     return Row(
-      mainAxisSize: MainAxisSize.min,
       children: [
         Radio<bool>(
           value: value,
           groupValue: _negotiable,
-          onChanged: (v) {
-            if (v != null) setState(() => _negotiable = v);
-          },
+          onChanged: (v) => setState(() => _negotiable = v!),
         ),
         Text(label),
       ],
@@ -366,15 +344,7 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
       label: Text(label),
       selected: selected,
       selectedColor: color,
-      backgroundColor: Colors.grey.shade200,
-      onSelected: (_) {
-        setState(() => _condition = label);
-      },
-      labelStyle: TextStyle(
-        color: Colors.black,
-        fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
-      ),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      onSelected: (_) => setState(() => _condition = label),
     );
   }
 }

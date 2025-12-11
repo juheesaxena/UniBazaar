@@ -1,5 +1,4 @@
 import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -11,13 +10,13 @@ import 'firebase_options.dart';
 import 'side_menu.dart';
 import 'search_screen.dart';
 import 'package:unibazaar/features/categories/product_detail_screen.dart';
+import 'package:unibazaar/features/chat/inbox_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   await FirebaseAuth.instance.signOut();
-
   runApp(const UniBazaarApp());
 }
 
@@ -45,7 +44,9 @@ class UniBazaarApp extends StatelessWidget {
   }
 }
 
-// ---------- SPLASH SCREEN ----------
+// ------------------------------------------------------------
+// SPLASH SCREEN
+// ------------------------------------------------------------
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -61,11 +62,10 @@ class _SplashScreenState extends State<SplashScreen> {
     Timer(const Duration(seconds: 2), () async {
       if (!mounted) return;
       final user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
-        Navigator.pushReplacementNamed(context, '/home');
-      } else {
-        Navigator.pushReplacementNamed(context, '/login');
-      }
+      Navigator.pushReplacementNamed(
+        context,
+        user != null ? '/home' : '/login',
+      );
     });
   }
 
@@ -73,17 +73,14 @@ class _SplashScreenState extends State<SplashScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      body: Center(
-        child: Image.asset(
-          'assets/images/unibazaar_splash.jpeg',
-          fit: BoxFit.contain,
-        ),
-      ),
+      body: Center(child: Image.asset('assets/images/unibazaar_splash.jpeg')),
     );
   }
 }
 
-// ---------- HOME SCREEN ----------
+// ------------------------------------------------------------
+// HOME SCREEN
+// ------------------------------------------------------------
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -117,6 +114,7 @@ class _HomeScreenState extends State<HomeScreen>
       vsync: this,
       duration: const Duration(milliseconds: 250),
     );
+
     _slide = CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic);
 
     _loadUserProfile();
@@ -129,47 +127,34 @@ class _HomeScreenState extends State<HomeScreen>
     final snap = await _db.ref('users/${user.uid}').get();
     if (!snap.exists) return;
 
-    final data = Map<String, dynamic>.from(snap.value as Map);
+    final map = Map<String, dynamic>.from(snap.value as Map);
     setState(() {
-      _userName = data['name'] as String?;
-      _phone = data['phone'] as String?;
+      _userName = map['name'] ?? "User";
+      _phone = map['phone'] ?? "";
     });
-  }
-
-  void _openMenu() {
-    setState(() => _isMenuOpen = true);
-    _controller.forward();
-  }
-
-  void _closeMenu() async {
-    await _controller.reverse();
-    if (mounted) setState(() => _isMenuOpen = false);
   }
 
   @override
   Widget build(BuildContext context) {
-    final double menuWidth = MediaQuery.of(context).size.width * 0.78;
     final size = MediaQuery.of(context).size;
-
-    final String avatarInitial = (_userName != null && _userName!.isNotEmpty)
-        ? _userName![0].toUpperCase()
-        : 'U';
-
-    final int crossAxisCount = size.width < 600 ? 2 : 3;
+    final crossAxisCount = size.width < 600 ? 2 : 3;
 
     return Scaffold(
       body: Stack(
         children: [
-          // MAIN HOME CONTENT
           SafeArea(
             child: Column(
               children: [
+                // ---------------- TOP BAR ----------------
                 Padding(
                   padding: const EdgeInsets.all(16),
                   child: Row(
                     children: [
                       GestureDetector(
-                        onTap: _openMenu,
+                        onTap: () {
+                          setState(() => _isMenuOpen = true);
+                          _controller.forward();
+                        },
                         child: Container(
                           height: 40,
                           width: 40,
@@ -185,7 +170,6 @@ class _HomeScreenState extends State<HomeScreen>
                         height: 28,
                         child: Image.asset(
                           'assets/images/unibazaar_splash.jpeg',
-                          fit: BoxFit.contain,
                         ),
                       ),
                       const Spacer(),
@@ -195,16 +179,37 @@ class _HomeScreenState extends State<HomeScreen>
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) =>
-                                  SearchScreen(avatarInitial: avatarInitial),
+                              builder: (_) => SearchScreen(
+                                avatarInitial:
+                                    _userName != null && _userName!.isNotEmpty
+                                    ? _userName![0]
+                                    : "U",
+                              ),
                             ),
                           );
                         },
                       ),
-                      CircleAvatar(child: Text(avatarInitial)),
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const InboxScreen(),
+                            ),
+                          );
+                        },
+                        child: const CircleAvatar(
+                          radius: 18,
+                          backgroundImage: AssetImage(
+                            'assets/images/dm_pic.jpeg',
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ),
+
+                // ---------------- ALL LISTINGS ----------------
                 const Padding(
                   padding: EdgeInsets.symmetric(horizontal: 16),
                   child: Align(
@@ -218,131 +223,128 @@ class _HomeScreenState extends State<HomeScreen>
                     ),
                   ),
                 ),
-                const SizedBox(height: 12),
 
-                // GRID of listings
                 Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: StreamBuilder<DatabaseEvent>(
-                      stream: _db.ref('listings').onValue,
-                      builder: (context, snapshot) {
-                        if (snapshot.hasError) {
-                          return const Center(
-                            child: Text('Error loading listings'),
+                  child: StreamBuilder<DatabaseEvent>(
+                    stream: _db.ref('listings').onValue,
+                    builder: (context, snapshot) {
+                      if (!snapshot.hasData ||
+                          snapshot.data!.snapshot.value == null) {
+                        return const Center(child: Text("No listings yet"));
+                      }
+
+                      final raw =
+                          snapshot.data!.snapshot.value
+                              as Map<dynamic, dynamic>;
+
+                      final entries = raw.entries.toList()
+                        ..sort((a, b) {
+                          return ((b.value['createdAt'] ?? 0) as int).compareTo(
+                            (a.value['createdAt'] ?? 0) as int,
                           );
-                        }
-                        if (!snapshot.hasData ||
-                            snapshot.data!.snapshot.value == null) {
-                          return const Center(child: Text('No listings yet'));
-                        }
+                        });
 
-                        final raw =
-                            snapshot.data!.snapshot.value
-                                as Map<dynamic, dynamic>;
-                        final entries = raw.entries.toList()
-                          ..sort((a, b) {
-                            final am = a.value as Map;
-                            final bm = b.value as Map;
-                            final at = (am['createdAt'] ?? 0) as int;
-                            final bt = (bm['createdAt'] ?? 0) as int;
-                            return bt.compareTo(at); // newest first
-                          });
+                      return GridView.builder(
+                        itemCount: entries.length,
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: crossAxisCount,
+                          childAspectRatio: 0.75,
+                          crossAxisSpacing: 12,
+                          mainAxisSpacing: 12,
+                        ),
+                        itemBuilder: (context, index) {
+                          final listing =
+                              entries[index].value as Map<dynamic, dynamic>;
 
-                        return GridView.builder(
-                          itemCount: entries.length,
-                          gridDelegate:
-                              SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: crossAxisCount,
-                                crossAxisSpacing: 12,
-                                mainAxisSpacing: 12,
-                                childAspectRatio: 0.75,
-                              ),
-                          itemBuilder: (context, index) {
-                            final listing =
-                                entries[index].value as Map<dynamic, dynamic>;
+                          final sellerUid =
+                              listing['sellerUid'] ?? listing['ownerId'] ?? "";
 
-                            final title =
-                                (listing['productName'] ?? '') as String;
-                            final description =
-                                (listing['description'] ?? '') as String;
-                            final price = (listing['price'] ?? 0).toDouble();
-                            final condition =
-                                (listing['condition'] ?? '') as String;
-                            final category =
-                                (listing['category'] ?? '') as String;
-                            final negotiable =
-                                (listing['negotiable'] ?? true) as bool;
-                            final college =
-                                (listing['college'] ?? '') as String;
+                          final images =
+                              (listing['images'] ?? []) as List<dynamic>;
 
-                            final images =
-                                (listing['images'] ?? []) as List<dynamic>;
-                            final thumbUrl = images.isNotEmpty
-                                ? images.first as String
-                                : '';
+                          final thumb = images.isNotEmpty
+                              ? images[0] as String
+                              : "";
 
-                            return InkWell(
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => ProductDetailScreen(
-                                      categoryName: category,
-                                      title: title,
-                                      description: description,
-                                      price: price,
-                                      condition: condition,
-                                      imageUrl: thumbUrl,
-                                      isNegotiable: negotiable,
-                                      college: college,
-                                    ),
+                          return InkWell(
+                            onTap: () async {
+                              print(
+                                "➡️ Listing tapped. sellerUid = $sellerUid",
+                              );
+
+                              String sellerName = "User";
+
+                              try {
+                                final snap = await _db
+                                    .ref("users/$sellerUid/name")
+                                    .get();
+
+                                if (snap.exists && snap.value != null) {
+                                  sellerName = snap.value.toString();
+                                }
+                              } catch (e) {
+                                print("🔥 ERROR fetching seller name: $e");
+                              }
+
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => ProductDetailScreen(
+                                    categoryName: listing['category'] ?? "",
+                                    title: listing['productName'] ?? "",
+                                    description: listing['description'] ?? "",
+                                    price: (listing['price'] ?? 0).toDouble(),
+                                    condition: listing['condition'] ?? "",
+                                    imageUrl: thumb,
+                                    isNegotiable: listing['negotiable'] ?? true,
+                                    college: listing['college'] ?? "",
+                                    sellerUid: sellerUid,
+                                    sellerName: sellerName,
                                   ),
-                                );
-                              },
-                              child: _ListingGridCard(
-                                productName: title,
-                                priceText: '₹ ${price.toStringAsFixed(0)}',
-                                thumbnailUrl: thumbUrl.isNotEmpty
-                                    ? thumbUrl
-                                    : null,
-                                college: college,
-                              ),
-                            );
-                          },
-                        );
-                      },
-                    ),
+                                ),
+                              );
+                            },
+                            child: _ListingGridCard(
+                              productName: listing['productName'] ?? "",
+                              priceText:
+                                  "₹ ${(listing['price'] ?? 0).toString()}",
+                              thumbnailUrl: thumb,
+                              college: listing['college'] ?? "",
+                            ),
+                          );
+                        },
+                      );
+                    },
                   ),
                 ),
               ],
             ),
           ),
 
-          // DARK OVERLAY
+          // ---------------- SIDE MENU OVERLAY ----------------
           if (_isMenuOpen)
-            AnimatedBuilder(
-              animation: _slide,
-              builder: (_, __) => Opacity(
-                opacity: _slide.value,
-                child: GestureDetector(
-                  onTap: _closeMenu,
-                  child: Container(color: Colors.black.withOpacity(0.4)),
-                ),
-              ),
+            GestureDetector(
+              onTap: () {
+                _controller.reverse();
+                setState(() => _isMenuOpen = false);
+              },
+              child: Container(color: Colors.black.withOpacity(0.4)),
             ),
 
-          // SLIDING SIDE MENU
           AnimatedBuilder(
             animation: _slide,
             builder: (_, __) {
+              final menuWidth = size.width * 0.78;
               final offset = -menuWidth + (menuWidth * _slide.value);
               return Transform.translate(
                 offset: Offset(offset, 0),
                 child: SizedBox(
                   width: menuWidth,
                   child: SideMenu(
-                    onClose: _closeMenu,
+                    onClose: () {
+                      _controller.reverse();
+                      setState(() => _isMenuOpen = false);
+                    },
                     userName: _userName,
                     phone: _phone,
                   ),
@@ -356,6 +358,10 @@ class _HomeScreenState extends State<HomeScreen>
   }
 }
 
+// ------------------------------------------------------------
+// GRID CARD
+// ------------------------------------------------------------
+
 class _ListingGridCard extends StatelessWidget {
   final String productName;
   final String priceText;
@@ -366,7 +372,7 @@ class _ListingGridCard extends StatelessWidget {
     required this.productName,
     required this.priceText,
     this.thumbnailUrl,
-    this.college = '',
+    this.college = "",
   });
 
   @override
@@ -385,7 +391,7 @@ class _ListingGridCard extends StatelessWidget {
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(12),
-            child: thumbnailUrl != null
+            child: thumbnailUrl != null && thumbnailUrl!.isNotEmpty
                 ? Image.network(
                     thumbnailUrl!,
                     width: double.infinity,
@@ -399,6 +405,7 @@ class _ListingGridCard extends StatelessWidget {
                   ),
           ),
           const SizedBox(height: 6),
+
           if (college.isNotEmpty)
             Text(
               college,
@@ -407,17 +414,19 @@ class _ListingGridCard extends StatelessWidget {
                 color: Colors.grey.shade600,
                 fontWeight: FontWeight.w500,
               ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
             ),
-          if (college.isNotEmpty) const SizedBox(height: 2),
+
+          const SizedBox(height: 2),
+
           Text(
             productName,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(fontWeight: FontWeight.w600),
           ),
+
           const Spacer(),
+
           Text(priceText, style: const TextStyle(fontWeight: FontWeight.bold)),
         ],
       ),

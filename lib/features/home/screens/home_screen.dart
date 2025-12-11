@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:unibazaar/features/categories/product_detail_screen.dart';
+import 'package:unibazaar/features/chat/inbox_screen.dart'; // ADD THIS
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -13,8 +15,8 @@ class HomeScreen extends StatelessWidget {
       body: SafeArea(
         child: Padding(
           padding: EdgeInsets.symmetric(
-            horizontal: size.width * 0.04, // 4% of width
-            vertical: size.height * 0.015, // 1.5% of height
+            horizontal: size.width * 0.04,
+            vertical: size.height * 0.015,
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -55,15 +57,32 @@ class HomeScreen extends StatelessWidget {
                   ),
                   Row(
                     children: [
-                      Container(
-                        height: 40,
-                        width: 40,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.grey.shade200,
+                      // DM icon button
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const InboxScreen(),
+                            ),
+                          );
+                        },
+                        child: Container(
+                          height: 40,
+                          width: 40,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.grey.shade200,
+                          ),
+                          alignment: Alignment.center,
+                          child: const Icon(
+                            Icons.chat_bubble_outline,
+                            size: 20,
+                          ),
                         ),
                       ),
                       const SizedBox(width: 10),
+                      // User avatar placeholder
                       Container(
                         height: 40,
                         width: 40,
@@ -123,6 +142,7 @@ class HomeScreen extends StatelessWidget {
                       itemBuilder: (context, index) {
                         final listing =
                             entries[index].value as Map<dynamic, dynamic>;
+
                         final description =
                             (listing['description'] ?? '') as String;
                         final price = listing['price'];
@@ -130,12 +150,44 @@ class HomeScreen extends StatelessWidget {
                         final images = (listing['images'] ?? []) as List;
                         final thumbUrl = images.isNotEmpty
                             ? images.first as String
-                            : null;
+                            : '';
 
-                        return ListingCard(
-                          description: description,
-                          priceText: price != null ? '$price' : '',
-                          thumbnailUrl: thumbUrl,
+                        final category = (listing['category'] ?? '') as String;
+                        final college = (listing['college'] ?? '') as String;
+                        final title = (listing['productName'] ?? '') as String;
+
+                        final sellerUid =
+                            (listing['sellerUid'] ?? '') as String;
+                        final sellerName =
+                            (listing['sellerName'] ?? 'Seller') as String;
+
+                        return GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => ProductDetailScreen(
+                                  categoryName: category,
+                                  title: title,
+                                  description: description,
+                                  price: (price as num).toDouble(),
+                                  condition:
+                                      (listing['condition'] ?? '') as String,
+                                  imageUrl: thumbUrl,
+                                  isNegotiable:
+                                      (listing['negotiable'] ?? true) as bool,
+                                  college: college,
+                                  sellerUid: sellerUid,
+                                  sellerName: sellerName,
+                                ),
+                              ),
+                            );
+                          },
+                          child: ListingCard(
+                            description: description,
+                            priceText: price != null ? '$price' : '',
+                            thumbnailUrl: thumbUrl.isNotEmpty ? thumbUrl : null,
+                          ),
                         );
                       },
                     );
@@ -174,10 +226,9 @@ class ListingCard extends StatelessWidget {
       ),
       child: Row(
         children: [
-          // Responsive image (Cloudinary/Firebase URL) or placeholder
           ClipRRect(
             borderRadius: BorderRadius.circular(12),
-            child: thumbnailUrl != null
+            child: thumbnailUrl != null && thumbnailUrl!.isNotEmpty
                 ? Image.network(
                     thumbnailUrl!,
                     width: size.width * 0.2,

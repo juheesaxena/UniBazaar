@@ -72,7 +72,7 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
                 controller: _emailCtrl,
                 keyboardType: TextInputType.emailAddress,
                 decoration: const InputDecoration(
-                  hintText: 'Enter mobile number',
+                  hintText: 'Enter Email ID',
                   border: UnderlineInputBorder(),
                 ),
               ),

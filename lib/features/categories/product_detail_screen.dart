@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:unibazaar/features/chat/chat_screen.dart';
 
 class ProductDetailScreen extends StatelessWidget {
   final String categoryName;
@@ -8,7 +9,9 @@ class ProductDetailScreen extends StatelessWidget {
   final String condition;
   final String imageUrl;
   final bool isNegotiable;
-  final String college; // NEW
+  final String college;
+  final String sellerUid;
+  final String sellerName;
 
   const ProductDetailScreen({
     super.key,
@@ -20,10 +23,14 @@ class ProductDetailScreen extends StatelessWidget {
     required this.imageUrl,
     this.isNegotiable = true,
     this.college = '',
+    required this.sellerUid,
+    required this.sellerName,
   });
 
   @override
   Widget build(BuildContext context) {
+    final hasImage = imageUrl.isNotEmpty;
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -32,7 +39,7 @@ class ProductDetailScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Top row: back + logo only
+              // ---------- TOP BAR ----------
               Row(
                 children: [
                   IconButton(
@@ -58,19 +65,26 @@ class ProductDetailScreen extends StatelessWidget {
 
               const SizedBox(height: 12),
 
+              // ---------- PRODUCT IMAGE ----------
               ClipRRect(
                 borderRadius: BorderRadius.circular(16),
-                child: Image.network(
-                  imageUrl,
-                  height: 260,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                ),
+                child: hasImage
+                    ? Image.network(
+                        imageUrl,
+                        height: 260,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                      )
+                    : Container(
+                        height: 260,
+                        width: double.infinity,
+                        color: Colors.grey.shade300,
+                      ),
               ),
 
               const SizedBox(height: 16),
 
-              // TAGS ROW: college and negotiable
+              // ---------- TAGS ----------
               Row(
                 children: [
                   if (college.isNotEmpty) _tagChip(college),
@@ -82,6 +96,7 @@ class ProductDetailScreen extends StatelessWidget {
 
               const SizedBox(height: 12),
 
+              // ---------- TITLE + PRICE ----------
               Text(
                 title,
                 style: const TextStyle(
@@ -89,7 +104,6 @@ class ProductDetailScreen extends StatelessWidget {
                   fontWeight: FontWeight.w800,
                 ),
               ),
-
               const SizedBox(height: 8),
 
               const Text(
@@ -123,6 +137,7 @@ class ProductDetailScreen extends StatelessWidget {
 
               const SizedBox(height: 24),
 
+              // ---------- CHAT BUTTON ----------
               SizedBox(
                 width: double.infinity,
                 height: 52,
@@ -136,10 +151,22 @@ class ProductDetailScreen extends StatelessWidget {
                     elevation: 0,
                   ),
                   onPressed: () {
-                    // TODO: implement contact seller
+                    print("Chat button tapped:");
+                    print("sellerUid = $sellerUid");
+                    print("sellerName = $sellerName");
+
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => ChatScreen(
+                          peerUid: sellerUid,
+                          peerName: sellerName,
+                        ),
+                      ),
+                    );
                   },
                   child: const Text(
-                    'Contact Seller',
+                    'Chat with Seller',
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
                   ),
                 ),

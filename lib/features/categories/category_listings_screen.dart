@@ -59,7 +59,12 @@ class CategoryListingsScreen extends StatelessWidget {
               final price = (data['price'] as num?)?.toDouble() ?? 0.0;
               final condition = (data['condition'] ?? 'Good') as String;
               final negotiable = (data['negotiable'] ?? true) as bool;
-              final college = (data['college'] ?? '') as String; // NEW
+              final college = (data['college'] ?? '') as String;
+
+              // NEW: seller info from DB
+              final sellerUid = (data['sellerUid'] ?? '') as String;
+              final sellerName = (data['sellerName'] ?? '') as String;
+
               final images = (data['images'] ?? []) as List;
               final thumbUrl = images.isNotEmpty
                   ? images.first as String
@@ -79,7 +84,9 @@ class CategoryListingsScreen extends StatelessWidget {
                         condition: condition,
                         imageUrl: thumbUrl,
                         isNegotiable: negotiable,
-                        college: college, // NEW
+                        college: college,
+                        sellerUid: sellerUid,
+                        sellerName: sellerName,
                       ),
                     ),
                   );
@@ -89,7 +96,7 @@ class CategoryListingsScreen extends StatelessWidget {
                   description: description,
                   priceText: price > 0 ? '₹ $price' : '',
                   thumbnailUrl: thumbUrl,
-                  college: college, // optional to show in list
+                  college: college,
                 ),
               );
             },
@@ -105,7 +112,7 @@ class _ListingTile extends StatelessWidget {
   final String description;
   final String priceText;
   final String? thumbnailUrl;
-  final String college; // NEW
+  final String college;
 
   const _ListingTile({
     required this.productName,
@@ -147,7 +154,7 @@ class _ListingTile extends StatelessWidget {
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min, // <‑ add this
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
                   productName,
