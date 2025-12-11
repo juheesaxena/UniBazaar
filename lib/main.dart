@@ -295,11 +295,12 @@ class _HomeScreenState extends State<HomeScreen>
                                     description: listing['description'] ?? "",
                                     price: (listing['price'] ?? 0).toDouble(),
                                     condition: listing['condition'] ?? "",
-                                    imageUrl: thumb,
+                                    images: images.cast<String>(),
                                     isNegotiable: listing['negotiable'] ?? true,
                                     college: listing['college'] ?? "",
                                     sellerUid: sellerUid,
                                     sellerName: sellerName,
+                                    listingId: entries[index].key as String,
                                   ),
                                 ),
                               );

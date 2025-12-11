@@ -1,10 +1,33 @@
 import 'package:flutter/material.dart';
 import 'features/categories/category_listings_screen.dart';
 
-class SearchScreen extends StatelessWidget {
+class SearchScreen extends StatefulWidget {
   final String avatarInitial;
 
   const SearchScreen({super.key, required this.avatarInitial});
+
+  @override
+  State<SearchScreen> createState() => _SearchScreenState();
+}
+
+class _SearchScreenState extends State<SearchScreen> {
+  final TextEditingController _searchController = TextEditingController();
+
+  void _openUniversalSearch() {
+    final query = _searchController.text.trim();
+    if (query.isEmpty) return;
+
+    // Navigate to a screen that searches ALL listings.
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const CategoryListingsScreen(
+          category:
+              'All', // inside this screen, ignore category and search globally
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -16,7 +39,7 @@ class SearchScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Top row: search bar + avatar
+              // Top row: universal search bar + avatar
               Row(
                 children: [
                   Expanded(
@@ -27,16 +50,19 @@ class SearchScreen extends StatelessWidget {
                         borderRadius: BorderRadius.circular(24),
                       ),
                       padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: const TextField(
-                        decoration: InputDecoration(
+                      child: TextField(
+                        controller: _searchController,
+                        textInputAction: TextInputAction.search,
+                        onSubmitted: (_) => _openUniversalSearch(),
+                        decoration: const InputDecoration(
                           border: InputBorder.none,
-                          hintText: 'Search',
+                          hintText: 'Search all listings',
                         ),
                       ),
                     ),
                   ),
                   const SizedBox(width: 12),
-                  CircleAvatar(child: Text(avatarInitial)),
+                  CircleAvatar(child: Text(widget.avatarInitial)),
                 ],
               ),
               const SizedBox(height: 24),
@@ -60,8 +86,9 @@ class SearchScreen extends StatelessWidget {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) =>
-                                CategoryListingsScreen(category: 'Electronics'),
+                            builder: (_) => const CategoryListingsScreen(
+                              category: 'Electronics',
+                            ),
                           ),
                         );
                       },
@@ -73,8 +100,9 @@ class SearchScreen extends StatelessWidget {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) =>
-                                CategoryListingsScreen(category: 'Household'),
+                            builder: (_) => const CategoryListingsScreen(
+                              category: 'Household',
+                            ),
                           ),
                         );
                       },
@@ -86,8 +114,9 @@ class SearchScreen extends StatelessWidget {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) =>
-                                CategoryListingsScreen(category: 'Fitness'),
+                            builder: (_) => const CategoryListingsScreen(
+                              category: 'Fitness',
+                            ),
                           ),
                         );
                       },
@@ -99,8 +128,9 @@ class SearchScreen extends StatelessWidget {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) =>
-                                CategoryListingsScreen(category: 'Beauty'),
+                            builder: (_) => const CategoryListingsScreen(
+                              category: 'Beauty',
+                            ),
                           ),
                         );
                       },
@@ -112,8 +142,9 @@ class SearchScreen extends StatelessWidget {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) =>
-                                CategoryListingsScreen(category: 'Bicycles'),
+                            builder: (_) => const CategoryListingsScreen(
+                              category: 'Bicycles',
+                            ),
                           ),
                         );
                       },
@@ -125,8 +156,9 @@ class SearchScreen extends StatelessWidget {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) =>
-                                CategoryListingsScreen(category: 'Kitchen'),
+                            builder: (_) => const CategoryListingsScreen(
+                              category: 'Kitchen',
+                            ),
                           ),
                         );
                       },

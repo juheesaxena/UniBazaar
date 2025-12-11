@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'search_screen.dart';
 import 'features/sell/create_listing_screen.dart';
-import 'features/sell/your_listings_screen.dart'; // NEW
+import 'features/sell/your_listings_screen.dart';
+import 'features/categories/saved_listings_screen.dart'; // NEW
 
 class SideMenu extends StatelessWidget {
   final VoidCallback onClose;
@@ -112,8 +113,7 @@ class SideMenu extends StatelessWidget {
 
               const SizedBox(height: 24),
 
-              // MENU ITEMS
-              _menuItem('Filters'),
+              // MENU ITEMS (Filters removed)
               _menuItem(
                 'Categories',
                 onTap: () {
@@ -127,7 +127,18 @@ class SideMenu extends StatelessWidget {
                   );
                 },
               ),
-              _menuItem('Saves'),
+              _menuItem(
+                'Saves',
+                onTap: () {
+                  onClose();
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const SavedListingsScreen(),
+                    ),
+                  );
+                },
+              ),
 
               const Spacer(),
 

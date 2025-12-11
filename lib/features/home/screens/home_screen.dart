@@ -173,12 +173,13 @@ class HomeScreen extends StatelessWidget {
                                   price: (price as num).toDouble(),
                                   condition:
                                       (listing['condition'] ?? '') as String,
-                                  imageUrl: thumbUrl,
+                                  images: images.cast<String>(),
                                   isNegotiable:
                                       (listing['negotiable'] ?? true) as bool,
                                   college: college,
                                   sellerUid: sellerUid,
                                   sellerName: sellerName,
+                                  listingId: entries[index].key as String,
                                 ),
                               ),
                             );

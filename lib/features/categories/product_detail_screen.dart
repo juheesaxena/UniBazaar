@@ -1,17 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:unibazaar/features/chat/chat_screen.dart';
 
-class ProductDetailScreen extends StatelessWidget {
+class ProductDetailScreen extends StatefulWidget {
   final String categoryName;
   final String title;
   final String description;
   final double price;
   final String condition;
-  final String imageUrl;
+  final List<String> images; // multiple images
   final bool isNegotiable;
   final String college;
   final String sellerUid;
   final String sellerName;
+  final String listingId; // id of this listing in /listings
 
   const ProductDetailScreen({
     super.key,
@@ -20,16 +24,38 @@ class ProductDetailScreen extends StatelessWidget {
     required this.description,
     required this.price,
     required this.condition,
-    required this.imageUrl,
+    required this.images,
     this.isNegotiable = true,
     this.college = '',
     required this.sellerUid,
     required this.sellerName,
+    required this.listingId,
   });
 
   @override
+  State<ProductDetailScreen> createState() => _ProductDetailScreenState();
+}
+
+class _ProductDetailScreenState extends State<ProductDetailScreen> {
+  late final PageController _pageController;
+  int _currentPage = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController();
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final hasImage = imageUrl.isNotEmpty;
+    final images = widget.images;
+    final hasImages = images.isNotEmpty;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -59,38 +85,83 @@ class ProductDetailScreen extends StatelessWidget {
 
               const SizedBox(height: 8),
               Text(
-                '$categoryName /',
+                '${widget.categoryName} /',
                 style: const TextStyle(fontSize: 14, color: Colors.grey),
               ),
 
               const SizedBox(height: 12),
 
-              // ---------- PRODUCT IMAGE ----------
-              ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: hasImage
-                    ? Image.network(
-                        imageUrl,
-                        height: 260,
-                        width: double.infinity,
-                        fit: BoxFit.cover,
-                      )
-                    : Container(
-                        height: 260,
-                        width: double.infinity,
-                        color: Colors.grey.shade300,
-                      ),
+              // ---------- PRODUCT IMAGES CAROUSEL + SAVE BUTTON ----------
+              AspectRatio(
+                aspectRatio: 16 / 9,
+                child: Stack(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: hasImages
+                          ? PageView.builder(
+                              controller: _pageController,
+                              itemCount: images.length,
+                              onPageChanged: (index) {
+                                setState(() => _currentPage = index);
+                              },
+                              itemBuilder: (context, index) {
+                                final url = images[index];
+                                return Image.network(
+                                  url,
+                                  width: double.infinity,
+                                  fit: BoxFit.cover,
+                                );
+                              },
+                            )
+                          : Container(color: Colors.grey.shade300),
+                    ),
+                    Positioned(
+                      top: 12,
+                      left: 12,
+                      child: _SaveButton(listingId: widget.listingId),
+                    ),
+                  ],
+                ),
               ),
+
+              if (hasImages) ...[
+                const SizedBox(height: 8),
+                // ---------- DOT INDICATOR ----------
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(images.length, (index) {
+                    final isActive = index == _currentPage;
+                    return AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      margin: const EdgeInsets.symmetric(horizontal: 4),
+                      height: 8,
+                      width: isActive ? 16 : 8,
+                      decoration: BoxDecoration(
+                        color: isActive ? Colors.black : Colors.grey.shade400,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    );
+                  }),
+                ),
+                const SizedBox(height: 4),
+                Center(
+                  child: Text(
+                    '${_currentPage + 1} / ${images.length}',
+                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                ),
+              ],
 
               const SizedBox(height: 16),
 
               // ---------- TAGS ----------
               Row(
                 children: [
-                  if (college.isNotEmpty) _tagChip(college),
-                  if (college.isNotEmpty && isNegotiable)
+                  if (widget.college.isNotEmpty) _tagChip(widget.college),
+                  if (widget.college.isNotEmpty && widget.isNegotiable)
                     const SizedBox(width: 8),
-                  if (isNegotiable) _tagChip('Negotiable'),
+                  if (widget.isNegotiable) _tagChip('Negotiable'),
                 ],
               ),
 
@@ -98,7 +169,7 @@ class ProductDetailScreen extends StatelessWidget {
 
               // ---------- TITLE + PRICE ----------
               Text(
-                title,
+                widget.title,
                 style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w800,
@@ -111,7 +182,7 @@ class ProductDetailScreen extends StatelessWidget {
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
               ),
               Text(
-                '₹ ${price.toStringAsFixed(0)}',
+                '₹ ${widget.price.toStringAsFixed(0)}',
                 style: const TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.w800,
@@ -124,7 +195,7 @@ class ProductDetailScreen extends StatelessWidget {
                 'Condition :',
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
               ),
-              Text(condition, style: const TextStyle(fontSize: 16)),
+              Text(widget.condition, style: const TextStyle(fontSize: 16)),
 
               const SizedBox(height: 16),
 
@@ -133,7 +204,7 @@ class ProductDetailScreen extends StatelessWidget {
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: 4),
-              Text(description, style: const TextStyle(fontSize: 15)),
+              Text(widget.description, style: const TextStyle(fontSize: 15)),
 
               const SizedBox(height: 24),
 
@@ -151,16 +222,12 @@ class ProductDetailScreen extends StatelessWidget {
                     elevation: 0,
                   ),
                   onPressed: () {
-                    print("Chat button tapped:");
-                    print("sellerUid = $sellerUid");
-                    print("sellerName = $sellerName");
-
                     Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (_) => ChatScreen(
-                          peerUid: sellerUid,
-                          peerName: sellerName,
+                          peerUid: widget.sellerUid,
+                          peerName: widget.sellerName,
                         ),
                       ),
                     );
@@ -186,6 +253,85 @@ class ProductDetailScreen extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
       ),
       child: Text(text, style: const TextStyle(fontWeight: FontWeight.w600)),
+    );
+  }
+}
+
+class _SaveButton extends StatefulWidget {
+  final String listingId;
+
+  const _SaveButton({required this.listingId});
+
+  @override
+  State<_SaveButton> createState() => _SaveButtonState();
+}
+
+class _SaveButtonState extends State<_SaveButton> {
+  bool _saved = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadInitial();
+  }
+
+  Future<void> _loadInitial() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final app = Firebase.app();
+    final db = FirebaseDatabase.instanceFor(
+      app: app,
+      databaseURL:
+          'https://unibazaar-73dd2-default-rtdb.asia-southeast1.firebasedatabase.app',
+    );
+
+    final snap = await db
+        .ref('users/${user.uid}/saves/${widget.listingId}')
+        .get();
+    if (mounted) {
+      setState(() => _saved = snap.exists);
+    }
+  }
+
+  Future<void> _toggleSave() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final app = Firebase.app();
+    final db = FirebaseDatabase.instanceFor(
+      app: app,
+      databaseURL:
+          'https://unibazaar-73dd2-default-rtdb.asia-southeast1.firebasedatabase.app',
+    );
+
+    final ref = db.ref('users/${user.uid}/saves/${widget.listingId}');
+    if (_saved) {
+      await ref.remove();
+    } else {
+      await ref.set(true);
+    }
+    if (mounted) {
+      setState(() => _saved = !_saved);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.black.withOpacity(0.4),
+      borderRadius: BorderRadius.circular(20),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: _toggleSave,
+        child: Padding(
+          padding: const EdgeInsets.all(6),
+          child: Icon(
+            _saved ? Icons.bookmark : Icons.bookmark_border,
+            color: Colors.white,
+          ),
+        ),
+      ),
     );
   }
 }
