@@ -4,6 +4,8 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 
+import 'package:unibazaar/services/chat_service.dart';
+
 import 'auth/phone_signup_screen.dart';
 import 'auth/phone_login_screen.dart';
 import 'firebase_options.dart';
@@ -15,6 +17,9 @@ import 'package:unibazaar/features/chat/inbox_screen.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  // 🔥 MUST INITIALIZE CHAT SERVICE BEFORE runApp()
+  ChatService.instance.init();
 
   await FirebaseAuth.instance.signOut();
   runApp(const UniBazaarApp());
@@ -62,6 +67,7 @@ class _SplashScreenState extends State<SplashScreen> {
     Timer(const Duration(seconds: 2), () async {
       if (!mounted) return;
       final user = FirebaseAuth.instance.currentUser;
+
       Navigator.pushReplacementNamed(
         context,
         user != null ? '/home' : '/login',
@@ -93,21 +99,27 @@ class _HomeScreenState extends State<HomeScreen>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
   late final Animation<double> _slide;
-  bool _isMenuOpen = false;
 
+  bool _isMenuOpen = false;
   String? _userName;
   String? _phone;
 
   late final FirebaseDatabase _db;
 
+  final ChatService _chatService = ChatService.instance;
+  Stream<int>? _unreadStream;
+
   @override
   void initState() {
     super.initState();
 
+    // 🔥 ChatService already initialized in main(), but safe to leave here
+    ChatService.instance.init();
+
     _db = FirebaseDatabase.instanceFor(
       app: Firebase.app(),
       databaseURL:
-          'https://unibazaar-73dd2-default-rtdb.asia-southeast1.firebasedatabase.app',
+          "https://unibazaar-73dd2-default-rtdb.asia-southeast1.firebasedatabase.app",
     );
 
     _controller = AnimationController(
@@ -118,6 +130,12 @@ class _HomeScreenState extends State<HomeScreen>
     _slide = CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic);
 
     _loadUserProfile();
+
+    // 🔥 unread count listener
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      _unreadStream = _chatService.getUnreadMessageCount(user.uid);
+    }
   }
 
   Future<void> _loadUserProfile() async {
@@ -127,10 +145,10 @@ class _HomeScreenState extends State<HomeScreen>
     final snap = await _db.ref('users/${user.uid}').get();
     if (!snap.exists) return;
 
-    final map = Map<String, dynamic>.from(snap.value as Map);
+    final data = Map<String, dynamic>.from(snap.value as Map);
     setState(() {
-      _userName = map['name'] ?? "User";
-      _phone = map['phone'] ?? "";
+      _userName = data['name'] ?? "User";
+      _phone = data['phone'] ?? "";
     });
   }
 
@@ -166,13 +184,16 @@ class _HomeScreenState extends State<HomeScreen>
                         ),
                       ),
                       const SizedBox(width: 12),
+
                       SizedBox(
                         height: 28,
                         child: Image.asset(
                           'assets/images/unibazaar_splash.jpeg',
                         ),
                       ),
+
                       const Spacer(),
+
                       IconButton(
                         icon: const Icon(Icons.search),
                         onPressed: () {
@@ -180,8 +201,7 @@ class _HomeScreenState extends State<HomeScreen>
                             context,
                             MaterialPageRoute(
                               builder: (_) => SearchScreen(
-                                avatarInitial:
-                                    _userName != null && _userName!.isNotEmpty
+                                avatarInitial: (_userName?.isNotEmpty ?? false)
                                     ? _userName![0]
                                     : "U",
                               ),
@@ -189,6 +209,8 @@ class _HomeScreenState extends State<HomeScreen>
                           );
                         },
                       ),
+
+                      // 🔥 DM ICON + BADGE
                       GestureDetector(
                         onTap: () {
                           Navigator.push(
@@ -198,18 +220,53 @@ class _HomeScreenState extends State<HomeScreen>
                             ),
                           );
                         },
-                        child: const CircleAvatar(
-                          radius: 18,
-                          backgroundImage: AssetImage(
-                            'assets/images/dm_pic.jpeg',
-                          ),
+                        child: Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            const CircleAvatar(
+                              radius: 18,
+                              backgroundImage: AssetImage(
+                                "assets/images/dm_pic.jpeg",
+                              ),
+                            ),
+
+                            Positioned(
+                              right: -4,
+                              top: -4,
+                              child: StreamBuilder<int>(
+                                stream: _unreadStream,
+                                builder: (context, snapshot) {
+                                  final unread = snapshot.data ?? 0;
+
+                                  if (unread == 0)
+                                    return const SizedBox.shrink();
+
+                                  return Container(
+                                    padding: const EdgeInsets.all(4),
+                                    decoration: const BoxDecoration(
+                                      color: Colors.red,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: Text(
+                                      unread.toString(),
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
                   ),
                 ),
 
-                // ---------------- ALL LISTINGS ----------------
+                // ---------------- LISTINGS ----------------
                 const Padding(
                   padding: EdgeInsets.symmetric(horizontal: 16),
                   child: Align(
@@ -226,7 +283,7 @@ class _HomeScreenState extends State<HomeScreen>
 
                 Expanded(
                   child: StreamBuilder<DatabaseEvent>(
-                    stream: _db.ref('listings').onValue,
+                    stream: _db.ref("listings").onValue,
                     builder: (context, snapshot) {
                       if (!snapshot.hasData ||
                           snapshot.data!.snapshot.value == null) {
@@ -236,13 +293,12 @@ class _HomeScreenState extends State<HomeScreen>
                       final raw =
                           snapshot.data!.snapshot.value
                               as Map<dynamic, dynamic>;
-
                       final entries = raw.entries.toList()
-                        ..sort((a, b) {
-                          return ((b.value['createdAt'] ?? 0) as int).compareTo(
-                            (a.value['createdAt'] ?? 0) as int,
-                          );
-                        });
+                        ..sort(
+                          (a, b) => (b.value["createdAt"] ?? 0).compareTo(
+                            a.value["createdAt"] ?? 0,
+                          ),
+                        );
 
                       return GridView.builder(
                         itemCount: entries.length,
@@ -253,64 +309,43 @@ class _HomeScreenState extends State<HomeScreen>
                           mainAxisSpacing: 12,
                         ),
                         itemBuilder: (context, index) {
-                          final listing =
-                              entries[index].value as Map<dynamic, dynamic>;
+                          final listing = entries[index].value as Map;
 
                           final sellerUid =
-                              listing['sellerUid'] ?? listing['ownerId'] ?? "";
+                              listing["sellerUid"] ?? listing["ownerId"] ?? "";
 
                           final images =
-                              (listing['images'] ?? []) as List<dynamic>;
-
-                          final thumb = images.isNotEmpty
-                              ? images[0] as String
-                              : "";
+                              (listing["images"] ?? []) as List<dynamic>;
+                          final thumb = images.isNotEmpty ? images[0] : "";
 
                           return InkWell(
-                            onTap: () async {
-                              print(
-                                "➡️ Listing tapped. sellerUid = $sellerUid",
-                              );
-
-                              String sellerName = "User";
-
-                              try {
-                                final snap = await _db
-                                    .ref("users/$sellerUid/name")
-                                    .get();
-
-                                if (snap.exists && snap.value != null) {
-                                  sellerName = snap.value.toString();
-                                }
-                              } catch (e) {
-                                print("🔥 ERROR fetching seller name: $e");
-                              }
-
+                            onTap: () {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
                                   builder: (_) => ProductDetailScreen(
-                                    categoryName: listing['category'] ?? "",
-                                    title: listing['productName'] ?? "",
-                                    description: listing['description'] ?? "",
-                                    price: (listing['price'] ?? 0).toDouble(),
-                                    condition: listing['condition'] ?? "",
+                                    categoryName: listing["category"] ?? "",
+                                    title: listing["productName"] ?? "",
+                                    description: listing["description"] ?? "",
+                                    price: (listing["price"] ?? 0).toDouble(),
+                                    condition: listing["condition"] ?? "",
                                     images: images.cast<String>(),
-                                    isNegotiable: listing['negotiable'] ?? true,
-                                    college: listing['college'] ?? "",
+                                    isNegotiable: listing["negotiable"] ?? true,
+                                    college: listing["college"] ?? "",
                                     sellerUid: sellerUid,
-                                    sellerName: sellerName,
+                                    sellerName:
+                                        listing["sellerName"] ??
+                                        "Unknown Seller",
                                     listingId: entries[index].key as String,
                                   ),
                                 ),
                               );
                             },
                             child: _ListingGridCard(
-                              productName: listing['productName'] ?? "",
-                              priceText:
-                                  "₹ ${(listing['price'] ?? 0).toString()}",
+                              productName: listing["productName"] ?? "",
+                              priceText: "₹ ${(listing["price"] ?? 0)}",
                               thumbnailUrl: thumb,
-                              college: listing['college'] ?? "",
+                              college: listing["college"] ?? "",
                             ),
                           );
                         },
@@ -322,7 +357,7 @@ class _HomeScreenState extends State<HomeScreen>
             ),
           ),
 
-          // ---------------- SIDE MENU OVERLAY ----------------
+          // ---------------- SIDE MENU ----------------
           if (_isMenuOpen)
             GestureDetector(
               onTap: () {
@@ -336,7 +371,8 @@ class _HomeScreenState extends State<HomeScreen>
             animation: _slide,
             builder: (_, __) {
               final menuWidth = size.width * 0.78;
-              final offset = -menuWidth + (menuWidth * _slide.value);
+              final offset = -menuWidth + menuWidth * _slide.value;
+
               return Transform.translate(
                 offset: Offset(offset, 0),
                 child: SizedBox(
@@ -360,7 +396,7 @@ class _HomeScreenState extends State<HomeScreen>
 }
 
 // ------------------------------------------------------------
-// GRID CARD
+// GRID CARD WIDGET
 // ------------------------------------------------------------
 
 class _ListingGridCard extends StatelessWidget {
@@ -378,8 +414,7 @@ class _ListingGridCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-    final imgSize = size.width * 0.28;
+    final imgSize = MediaQuery.of(context).size.width * 0.28;
 
     return Container(
       decoration: BoxDecoration(
@@ -400,8 +435,8 @@ class _ListingGridCard extends StatelessWidget {
                     fit: BoxFit.cover,
                   )
                 : Container(
-                    width: double.infinity,
                     height: imgSize,
+                    width: double.infinity,
                     color: Colors.grey.shade300,
                   ),
           ),

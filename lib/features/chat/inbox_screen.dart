@@ -1,25 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_core/firebase_core.dart';
-
-import 'package:unibazaar/features/chat/chat_screen.dart';
+import 'package:firebase_database/firebase_database.dart';
+import '../../services/chat_service.dart';
+import 'chat_screen.dart';
 
 class InboxScreen extends StatelessWidget {
   const InboxScreen({super.key});
 
-  Future<String> _getUserName(String uid, FirebaseDatabase db) async {
-    final snap = await db.ref("users/$uid/name").get();
-    if (snap.exists && snap.value != null) {
-      return snap.value.toString();
-    }
-    return "User";
-  }
-
   @override
   Widget build(BuildContext context) {
-    final currentUid = FirebaseAuth.instance.currentUser!.uid;
+    final uid = FirebaseAuth.instance.currentUser!.uid;
 
+    // ✅ FIX: Fully compatible version
     final db = FirebaseDatabase.instanceFor(
       app: Firebase.app(),
       databaseURL:
@@ -27,76 +20,52 @@ class InboxScreen extends StatelessWidget {
     );
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Chats')),
+      appBar: AppBar(title: const Text("Chats")),
       body: StreamBuilder<DatabaseEvent>(
-        stream: db.ref('userChats/$currentUid').onValue,
+        stream: db.ref("userChats/$uid").onValue,
         builder: (context, snapshot) {
-          if (!snapshot.hasData || snapshot.data!.snapshot.value == null) {
-            return const Center(child: Text('No chats yet'));
+          if (!snapshot.hasData) {
+            return const Center(child: CircularProgressIndicator());
           }
 
-          final raw = snapshot.data!.snapshot.value as Map<dynamic, dynamic>;
-          final entries = raw.entries.toList()
+          final data = snapshot.data!.snapshot.value;
+
+          if (data == null || data is! Map) {
+            return const Center(child: Text("No chats yet"));
+          }
+
+          final chats = Map<dynamic, dynamic>.from(data).entries.toList()
             ..sort((a, b) {
-              final am = a.value as Map;
-              final bm = b.value as Map;
-              return (bm['lastTimestamp'] ?? 0).compareTo(
-                am['lastTimestamp'] ?? 0,
-              );
+              final t1 = (a.value['timestamp'] ?? 0) as int;
+              final t2 = (b.value['timestamp'] ?? 0) as int;
+              return t2.compareTo(t1); // latest first
             });
 
-          return ListView.separated(
-            itemCount: entries.length,
-            separatorBuilder: (_, __) => const Divider(height: 1),
+          return ListView.builder(
+            itemCount: chats.length,
             itemBuilder: (context, index) {
-              final chat = entries[index].value as Map;
-              final peerUid = chat['peerUid'];
-              final storedName = (chat['peerName'] ?? "").toString();
-              final lastMessage = chat['lastMessage'] ?? "";
+              final chat = Map<dynamic, dynamic>.from(chats[index].value);
 
-              // If stored name is valid, use it directly
-              if (storedName.isNotEmpty && storedName != "User") {
-                return ListTile(
-                  title: Text(storedName),
-                  subtitle: Text(
-                    lastMessage,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) =>
-                            ChatScreen(peerUid: peerUid, peerName: storedName),
-                      ),
-                    );
-                  },
-                );
-              }
+              final peerUid = chat["uid"] ?? "";
+              final peerName = chat["name"] ?? "User";
+              final lastMessage = chat["lastMessage"] ?? "";
+              final unread = (chat["unread"] ?? 0) as int;
 
-              // Otherwise fetch correct name
-              return FutureBuilder(
-                future: _getUserName(peerUid, db),
-                builder: (context, snap) {
-                  final peerName = snap.data?.toString() ?? "User";
-
-                  return ListTile(
-                    title: Text(peerName),
-                    subtitle: Text(
-                      lastMessage,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+              return ListTile(
+                title: Text(peerName),
+                subtitle: Text(
+                  lastMessage,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                trailing: unread > 0 ? _UnreadBadge(count: unread) : null,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          ChatScreen(peerUid: peerUid, peerName: peerName),
                     ),
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) =>
-                              ChatScreen(peerUid: peerUid, peerName: peerName),
-                        ),
-                      );
-                    },
                   );
                 },
               );
@@ -104,6 +73,24 @@ class InboxScreen extends StatelessWidget {
           );
         },
       ),
+    );
+  }
+}
+
+class _UnreadBadge extends StatelessWidget {
+  final int count;
+
+  const _UnreadBadge({required this.count});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.red,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text("$count", style: const TextStyle(color: Colors.white)),
     );
   }
 }

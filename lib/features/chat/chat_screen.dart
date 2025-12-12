@@ -17,17 +17,19 @@ class _ChatScreenState extends State<ChatScreen> {
   final ChatService _chatService = ChatService.instance;
   final TextEditingController _controller = TextEditingController();
 
-  late final String _chatId;
   late final String _currentUid;
+  late final String _chatId;
 
   @override
   void initState() {
     super.initState();
-    final user = FirebaseAuth.instance.currentUser;
-    _currentUid = user?.uid ?? '';
+
+    _chatService.init();
+
+    _currentUid = FirebaseAuth.instance.currentUser!.uid;
     _chatId = _chatService.chatIdFor(_currentUid, widget.peerUid);
 
-    print("ChatScreen opened → peer: ${widget.peerName}");
+    _chatService.markChatAsRead(_chatId);
   }
 
   @override
@@ -40,46 +42,49 @@ class _ChatScreenState extends State<ChatScreen> {
             child: StreamBuilder<DatabaseEvent>(
               stream: _chatService.messageStream(_chatId),
               builder: (context, snapshot) {
-                if (!snapshot.hasData ||
-                    snapshot.data!.snapshot.value == null) {
+                if (!snapshot.hasData) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                final data = snapshot.data!.snapshot.value;
+
+                if (data == null || data is! Map) {
                   return const Center(child: Text("Say hi 👋"));
                 }
 
-                final raw =
-                    snapshot.data!.snapshot.value as Map<dynamic, dynamic>;
-                final msgs = raw.entries.toList()
+                final raw = Map<dynamic, dynamic>.from(data);
+
+                final messages = raw.entries.toList()
                   ..sort((a, b) {
-                    final am = a.value as Map;
-                    final bm = b.value as Map;
-                    return (am['timestamp'] ?? 0).compareTo(
-                      bm['timestamp'] ?? 0,
-                    );
+                    final t1 = (a.value["timestamp"] ?? 0) as int;
+                    final t2 = (b.value["timestamp"] ?? 0) as int;
+                    return t1.compareTo(t2);
                   });
 
                 return ListView.builder(
                   padding: const EdgeInsets.all(12),
-                  itemCount: msgs.length,
+                  itemCount: messages.length,
                   itemBuilder: (context, index) {
-                    final m = msgs[index].value as Map;
-                    final isMe = m['fromUid'] == _currentUid;
+                    final msg = Map<dynamic, dynamic>.from(
+                      messages[index].value,
+                    );
+
+                    final isMe = msg["fromUid"] == _currentUid;
 
                     return Align(
                       alignment: isMe
                           ? Alignment.centerRight
                           : Alignment.centerLeft,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
-                        ),
                         margin: const EdgeInsets.symmetric(vertical: 4),
+                        padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
                           color: isMe
                               ? Colors.green.shade200
                               : Colors.grey.shade300,
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: Text(m['text']),
+                        child: Text(msg["text"]),
                       ),
                     );
                   },
