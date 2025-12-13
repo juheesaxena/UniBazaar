@@ -229,7 +229,6 @@ class _HomeScreenState extends State<HomeScreen>
                                 "assets/images/dm_pic.jpeg",
                               ),
                             ),
-
                             Positioned(
                               right: -4,
                               top: -4,
@@ -238,8 +237,9 @@ class _HomeScreenState extends State<HomeScreen>
                                 builder: (context, snapshot) {
                                   final unread = snapshot.data ?? 0;
 
-                                  if (unread == 0)
+                                  if (unread == 0) {
                                     return const SizedBox.shrink();
+                                  }
 
                                   return Container(
                                     padding: const EdgeInsets.all(4),
@@ -300,55 +300,65 @@ class _HomeScreenState extends State<HomeScreen>
                           ),
                         );
 
-                      return GridView.builder(
-                        itemCount: entries.length,
-                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: crossAxisCount,
-                          childAspectRatio: 0.75,
-                          crossAxisSpacing: 12,
-                          mainAxisSpacing: 12,
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
                         ),
-                        itemBuilder: (context, index) {
-                          final listing = entries[index].value as Map;
+                        child: GridView.builder(
+                          itemCount: entries.length,
+                          gridDelegate:
+                              SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: crossAxisCount,
+                                childAspectRatio: 0.75,
+                                crossAxisSpacing: 12,
+                                mainAxisSpacing: 12,
+                              ),
+                          itemBuilder: (context, index) {
+                            final listing = entries[index].value as Map;
 
-                          final sellerUid =
-                              listing["sellerUid"] ?? listing["ownerId"] ?? "";
+                            final sellerUid =
+                                listing["sellerUid"] ??
+                                listing["ownerId"] ??
+                                "";
 
-                          final images =
-                              (listing["images"] ?? []) as List<dynamic>;
-                          final thumb = images.isNotEmpty ? images[0] : "";
+                            final images =
+                                (listing["images"] ?? []) as List<dynamic>;
+                            final thumb = images.isNotEmpty ? images[0] : "";
 
-                          return InkWell(
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => ProductDetailScreen(
-                                    categoryName: listing["category"] ?? "",
-                                    title: listing["productName"] ?? "",
-                                    description: listing["description"] ?? "",
-                                    price: (listing["price"] ?? 0).toDouble(),
-                                    condition: listing["condition"] ?? "",
-                                    images: images.cast<String>(),
-                                    isNegotiable: listing["negotiable"] ?? true,
-                                    college: listing["college"] ?? "",
-                                    sellerUid: sellerUid,
-                                    sellerName:
-                                        listing["sellerName"] ??
-                                        "Unknown Seller",
-                                    listingId: entries[index].key as String,
+                            return InkWell(
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => ProductDetailScreen(
+                                      categoryName: listing["category"] ?? "",
+                                      title: listing["productName"] ?? "",
+                                      description: listing["description"] ?? "",
+                                      price: (listing["price"] ?? 0).toDouble(),
+                                      condition: listing["condition"] ?? "",
+                                      images: images.cast<String>(),
+                                      isNegotiable:
+                                          listing["negotiable"] ?? true,
+                                      college: listing["college"] ?? "",
+                                      sellerUid: sellerUid,
+                                      sellerName:
+                                          listing["sellerName"] ??
+                                          "Unknown Seller",
+                                      listingId: entries[index].key as String,
+                                    ),
                                   ),
-                                ),
-                              );
-                            },
-                            child: _ListingGridCard(
-                              productName: listing["productName"] ?? "",
-                              priceText: "₹ ${(listing["price"] ?? 0)}",
-                              thumbnailUrl: thumb,
-                              college: listing["college"] ?? "",
-                            ),
-                          );
-                        },
+                                );
+                              },
+                              child: _ListingGridCard(
+                                productName: listing["productName"] ?? "",
+                                priceText: "₹ ${(listing["price"] ?? 0)}",
+                                thumbnailUrl: thumb,
+                                college: listing["college"] ?? "",
+                              ),
+                            );
+                          },
+                        ),
                       );
                     },
                   ),
@@ -357,7 +367,7 @@ class _HomeScreenState extends State<HomeScreen>
             ),
           ),
 
-          // ---------------- SIDE MENU ----------------
+          // ---------------- SIDE MENU OVERLAY ----------------
           if (_isMenuOpen)
             GestureDetector(
               onTap: () {

@@ -11,24 +11,6 @@ class SearchScreen extends StatefulWidget {
 }
 
 class _SearchScreenState extends State<SearchScreen> {
-  final TextEditingController _searchController = TextEditingController();
-
-  void _openUniversalSearch() {
-    final query = _searchController.text.trim();
-    if (query.isEmpty) return;
-
-    // Navigate to a screen that searches ALL listings.
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => const CategoryListingsScreen(
-          category:
-              'All', // inside this screen, ignore category and search globally
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -39,37 +21,21 @@ class _SearchScreenState extends State<SearchScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Top row: universal search bar + avatar
+              // Top bar: back arrow + title + avatar
               Row(
                 children: [
-                  Expanded(
-                    child: Container(
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade100,
-                        borderRadius: BorderRadius.circular(24),
-                      ),
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: TextField(
-                        controller: _searchController,
-                        textInputAction: TextInputAction.search,
-                        onSubmitted: (_) => _openUniversalSearch(),
-                        decoration: const InputDecoration(
-                          border: InputBorder.none,
-                          hintText: 'Search all listings',
-                        ),
-                      ),
-                    ),
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back),
+                    onPressed: () => Navigator.pop(context),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'Categories',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+                  ),
+                  const Spacer(),
                   CircleAvatar(child: Text(widget.avatarInitial)),
                 ],
-              ),
-              const SizedBox(height: 24),
-
-              const Text(
-                'Categories',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: 16),
 
@@ -136,14 +102,14 @@ class _SearchScreenState extends State<SearchScreen> {
                       },
                     ),
                     _CategoryTile(
-                      label: 'Bicycles',
+                      label: 'Two Wheelers',
                       color: const Color(0xFFB8FFB8),
                       onTap: () {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
                             builder: (_) => const CategoryListingsScreen(
-                              category: 'Bicycles',
+                              category: 'Two Wheelers',
                             ),
                           ),
                         );
