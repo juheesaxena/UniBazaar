@@ -7,7 +7,11 @@ class ChatScreen extends StatefulWidget {
   final String peerUid;
   final String peerName;
 
-  const ChatScreen({super.key, required this.peerUid, required this.peerName});
+  const ChatScreen({
+    super.key,
+    required this.peerUid,
+    required this.peerName,
+  });
 
   @override
   State<ChatScreen> createState() => _ChatScreenState();
@@ -34,8 +38,45 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final avatarInitial =
+        widget.peerName.isNotEmpty ? widget.peerName[0].toUpperCase() : 'U';
+
     return Scaffold(
-      appBar: AppBar(title: Text(widget.peerName)),
+      backgroundColor: Colors.white,
+
+      // ---------------- APP BAR ----------------
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: const BackButton(color: Colors.black),
+        titleSpacing: 0,
+        title: Row(
+          children: [
+            CircleAvatar(
+              radius: 18,
+              backgroundColor: Colors.blue.shade100,
+              child: Text(
+                avatarInitial,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Text(
+              widget.peerName,
+              style: const TextStyle(
+                color: Colors.black,
+                fontWeight: FontWeight.w600,
+                fontSize: 18,
+              ),
+            ),
+          ],
+        ),
+      ),
+
+      // ---------------- BODY ----------------
       body: Column(
         children: [
           Expanded(
@@ -62,29 +103,39 @@ class _ChatScreenState extends State<ChatScreen> {
                   });
 
                 return ListView.builder(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
                   itemCount: messages.length,
                   itemBuilder: (context, index) {
-                    final msg = Map<dynamic, dynamic>.from(
-                      messages[index].value,
-                    );
+                    final msg =
+                        Map<dynamic, dynamic>.from(messages[index].value);
 
                     final isMe = msg["fromUid"] == _currentUid;
 
                     return Align(
-                      alignment: isMe
-                          ? Alignment.centerRight
-                          : Alignment.centerLeft,
+                      alignment:
+                          isMe ? Alignment.centerRight : Alignment.centerLeft,
                       child: Container(
-                        margin: const EdgeInsets.symmetric(vertical: 4),
-                        padding: const EdgeInsets.all(10),
+                        margin: const EdgeInsets.symmetric(vertical: 6),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 10,
+                        ),
+                        constraints: BoxConstraints(
+                          maxWidth: MediaQuery.of(context).size.width * 0.75,
+                        ),
                         decoration: BoxDecoration(
                           color: isMe
-                              ? Colors.green.shade200
-                              : Colors.grey.shade300,
-                          borderRadius: BorderRadius.circular(12),
+                              ? const Color(0xFFB7DFA3) // light green
+                              : Colors.grey.shade200,
+                          borderRadius: BorderRadius.circular(18),
                         ),
-                        child: Text(msg["text"]),
+                        child: Text(
+                          msg["text"],
+                          style: const TextStyle(fontSize: 15),
+                        ),
                       ),
                     );
                   },
@@ -93,34 +144,45 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ),
 
-          // INPUT BAR
+          // ---------------- INPUT BAR ----------------
           SafeArea(
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _controller,
-                    decoration: const InputDecoration(
-                      hintText: "Type a message...",
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(30),
+                  border: Border.all(color: Colors.black),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _controller,
+                        decoration: const InputDecoration(
+                          hintText: "Message",
+                          border: InputBorder.none,
+                        ),
+                      ),
                     ),
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.send),
-                  onPressed: () async {
-                    final text = _controller.text.trim();
-                    if (text.isEmpty) return;
+                    IconButton(
+                      icon: const Icon(Icons.send),
+                      onPressed: () async {
+                        final text = _controller.text.trim();
+                        if (text.isEmpty) return;
 
-                    _controller.clear();
+                        _controller.clear();
 
-                    await _chatService.sendMessage(
-                      toUid: widget.peerUid,
-                      text: text,
-                      toName: widget.peerName,
-                    );
-                  },
+                        await _chatService.sendMessage(
+                          toUid: widget.peerUid,
+                          text: text,
+                          toName: widget.peerName,
+                        );
+                      },
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         ],

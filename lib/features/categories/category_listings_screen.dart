@@ -282,7 +282,7 @@ class _CategoryListingsScreenState extends State<CategoryListingsScreen> {
                   ),
                   const SizedBox(height: 8),
                   DropdownButtonFormField<String>(
-                    value: tempCollege,
+                    initialValue: tempCollege,
                     items: _colleges
                         .map(
                           (c) => DropdownMenuItem<String>(

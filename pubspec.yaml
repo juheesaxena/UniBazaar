@@ -5,7 +5,9 @@ publish_to: 'none'
 version: 1.0.0+1
 
 environment:
-  sdk: ^3.9.2
+  sdk: ">=3.0.0 <4.0.0"
+
+
 
 dependencies:
   flutter:
@@ -19,6 +21,8 @@ dependencies:
   cloudinary: ^1.2.0
   http: ^1.2.2
   http_parser: ^4.0.2
+  url_launcher: ^6.2.6
+
 
 dev_dependencies:
   flutter_test:
