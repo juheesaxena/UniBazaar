@@ -290,9 +290,8 @@ class _HomeScreenState extends State<HomeScreen>
                         return const Center(child: Text("No listings yet"));
                       }
 
-                      final raw =
-                          snapshot.data!.snapshot.value
-                              as Map<dynamic, dynamic>;
+                      final raw = snapshot.data!.snapshot.value
+                          as Map<dynamic, dynamic>;
                       final entries = raw.entries.toList()
                         ..sort(
                           (a, b) => (b.value["createdAt"] ?? 0).compareTo(
@@ -309,16 +308,15 @@ class _HomeScreenState extends State<HomeScreen>
                           itemCount: entries.length,
                           gridDelegate:
                               SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: crossAxisCount,
-                                childAspectRatio: 0.75,
-                                crossAxisSpacing: 12,
-                                mainAxisSpacing: 12,
-                              ),
+                            crossAxisCount: crossAxisCount,
+                            childAspectRatio: 0.75,
+                            crossAxisSpacing: 12,
+                            mainAxisSpacing: 12,
+                          ),
                           itemBuilder: (context, index) {
                             final listing = entries[index].value as Map;
 
-                            final sellerUid =
-                                listing["sellerUid"] ??
+                            final sellerUid = listing["sellerUid"] ??
                                 listing["ownerId"] ??
                                 "";
 
@@ -342,8 +340,7 @@ class _HomeScreenState extends State<HomeScreen>
                                           listing["negotiable"] ?? true,
                                       college: listing["college"] ?? "",
                                       sellerUid: sellerUid,
-                                      sellerName:
-                                          listing["sellerName"] ??
+                                      sellerName: listing["sellerName"] ??
                                           "Unknown Seller",
                                       listingId: entries[index].key as String,
                                     ),
@@ -451,7 +448,6 @@ class _ListingGridCard extends StatelessWidget {
                   ),
           ),
           const SizedBox(height: 6),
-
           if (college.isNotEmpty)
             Text(
               college,
@@ -461,18 +457,14 @@ class _ListingGridCard extends StatelessWidget {
                 fontWeight: FontWeight.w500,
               ),
             ),
-
           const SizedBox(height: 2),
-
           Text(
             productName,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(fontWeight: FontWeight.w600),
           ),
-
           const Spacer(),
-
           Text(priceText, style: const TextStyle(fontWeight: FontWeight.bold)),
         ],
       ),

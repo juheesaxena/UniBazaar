@@ -27,7 +27,9 @@ class _YourListingsScreenState extends State<YourListingsScreen> {
       return const Scaffold(body: Center(child: Text('You must be logged in')));
     }
 
-    final query = db.ref('listings').orderByChild('ownerId').equalTo(user.uid);
+    final listingsQuery =
+        db.ref('listings').orderByChild('ownerId').equalTo(user.uid);
+    final soldRef = db.ref('users/${user.uid}/soldListings');
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -41,114 +43,131 @@ class _YourListingsScreenState extends State<YourListingsScreen> {
         ),
       ),
       body: StreamBuilder<DatabaseEvent>(
-        stream: query.onValue,
+        stream: listingsQuery.onValue,
         builder: (context, snapshot) {
           if (snapshot.hasError) {
             return const Center(child: Text('Error loading your listings'));
           }
 
-          if (!snapshot.hasData || snapshot.data!.snapshot.value == null) {
-            return const Padding(
-              padding: EdgeInsets.all(16),
-              child: Text(
-                'Listings expire after 7 days, so be sure to renew them.',
-                style: TextStyle(color: Colors.grey),
-              ),
-            );
-          }
+          final listingsValue = snapshot.data?.snapshot.value;
+          final hasListings = listingsValue != null;
 
-          final raw = snapshot.data!.snapshot.value as Map<dynamic, dynamic>;
-          final allEntries = raw.entries.toList()
-            ..sort((a, b) {
-              final am = a.value as Map;
-              final bm = b.value as Map;
-              final at = (am['createdAt'] ?? 0) as int;
-              final bt = (bm['createdAt'] ?? 0) as int;
-              return bt.compareTo(at); // newest first
-            });
+          final List<MapEntry<dynamic, dynamic>> currentEntries = [];
+          final List<MapEntry<dynamic, dynamic>> expiredEntries = [];
 
-          final now = DateTime.now();
+          if (hasListings) {
+            final raw = listingsValue as Map<dynamic, dynamic>;
+            final allEntries = raw.entries.toList()
+              ..sort((a, b) {
+                final am = a.value as Map;
+                final bm = b.value as Map;
+                final at = (am['createdAt'] ?? 0) as int;
+                final bt = (bm['createdAt'] ?? 0) as int;
+                return bt.compareTo(at); // newest first
+              });
 
-          final currentEntries = <MapEntry<dynamic, dynamic>>[];
-          final soldEntries = <MapEntry<dynamic, dynamic>>[];
-          final expiredEntries = <MapEntry<dynamic, dynamic>>[];
+            final now = DateTime.now();
 
-          for (final e in allEntries) {
-            final m = e.value as Map;
-            final status = (m['status'] ?? 'active') as String;
-            final int createdAt = (m['createdAt'] ?? 0) as int;
-            final expiry = DateTime.fromMillisecondsSinceEpoch(
-              createdAt,
-            ).add(const Duration(days: 7));
+            for (final e in allEntries) {
+              final m = e.value as Map;
+              final int createdAt = (m['createdAt'] ?? 0) as int;
+              final expiry = DateTime.fromMillisecondsSinceEpoch(
+                createdAt,
+              ).add(const Duration(days: 7));
 
-            if (status == 'sold') {
-              soldEntries.add(e);
-            } else if (expiry.isBefore(now)) {
-              expiredEntries.add(e);
-            } else {
-              currentEntries.add(e);
+              if (expiry.isBefore(now)) {
+                expiredEntries.add(e);
+              } else {
+                currentEntries.add(e);
+              }
             }
           }
 
-          List<MapEntry<dynamic, dynamic>> visible;
-          bool isSoldTab = false;
-          bool isExpiredTab = false;
+          return StreamBuilder<DatabaseEvent>(
+            stream: soldRef.onValue,
+            builder: (context, soldSnap) {
+              final soldValue = soldSnap.data?.snapshot.value;
+              final List<MapEntry<dynamic, dynamic>> soldEntries = [];
 
-          if (_selectedTab == 0) {
-            visible = currentEntries;
-          } else if (_selectedTab == 1) {
-            visible = soldEntries;
-            isSoldTab = true;
-          } else {
-            visible = expiredEntries;
-            isExpiredTab = true;
-          }
+              if (soldValue != null) {
+                final rawSold = soldValue as Map<dynamic, dynamic>;
+                soldEntries.addAll(rawSold.entries.toList()
+                  ..sort((a, b) {
+                    final am = a.value as Map;
+                    final bm = b.value as Map;
+                    final at = (am['soldAt'] ?? 0) as int;
+                    final bt = (bm['soldAt'] ?? 0) as int;
+                    return bt.compareTo(at); // newest first
+                  }));
+              }
 
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                child: Text(
-                  'Listings expire after 7 days, so be sure to renew them.',
-                  style: TextStyle(color: Colors.grey),
-                ),
-              ),
-              const SizedBox(height: 8),
+              List<MapEntry<dynamic, dynamic>> visible;
+              bool isSoldTab = false;
+              bool isExpiredTab = false;
+              bool isSoldSourceUserNode = false;
 
-              // Tab switcher
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Row(
-                  children: [
-                    _tabChip('Current', 0),
-                    const SizedBox(width: 8),
-                    _tabChip('Sold Items', 1),
-                    const SizedBox(width: 8),
-                    _tabChip('Expired', 2),
-                  ],
-                ),
-              ),
+              if (_selectedTab == 0) {
+                visible = currentEntries;
+              } else if (_selectedTab == 1) {
+                visible = soldEntries;
+                isSoldTab = true;
+                isSoldSourceUserNode = true;
+              } else {
+                visible = expiredEntries;
+                isExpiredTab = true;
+              }
 
-              const SizedBox(height: 16),
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                    child: Text(
+                      'Listings expire after 7 days, so be sure to renew them.',
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
 
-              Expanded(
-                child: ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  itemCount: visible.length,
-                  itemBuilder: (context, index) {
-                    final entry = visible[index];
-                    return _YourListingTile(
-                      id: entry.key as String,
-                      data: entry.value as Map<dynamic, dynamic>,
-                      db: db,
-                      isSold: isSoldTab,
-                      isExpired: isExpiredTab,
-                    );
-                  },
-                ),
-              ),
-            ],
+                  // Tab switcher: Current / Sold / Expired
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Row(
+                      children: [
+                        _tabChip('Current', 0),
+                        const SizedBox(width: 8),
+                        _tabChip('Sold', 1),
+                        const SizedBox(width: 8),
+                        _tabChip('Expired', 2),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  Expanded(
+                    child: visible.isEmpty
+                        ? const Center(child: Text('No listings here yet'))
+                        : ListView.builder(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            itemCount: visible.length,
+                            itemBuilder: (context, index) {
+                              final entry = visible[index];
+                              return _YourListingTile(
+                                id: entry.key as String,
+                                data: entry.value as Map<dynamic, dynamic>,
+                                db: db,
+                                soldRef: soldRef,
+                                isSoldTab: isSoldTab,
+                                isExpired: isExpiredTab,
+                                isSoldFromUserNode: isSoldSourceUserNode,
+                              );
+                            },
+                          ),
+                  ),
+                ],
+              );
+            },
           );
         },
       ),
@@ -175,7 +194,7 @@ class _YourListingsScreenState extends State<YourListingsScreen> {
           alignment: Alignment.center,
           child: Text(
             label,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,
               color: Colors.black,
@@ -191,15 +210,19 @@ class _YourListingTile extends StatelessWidget {
   final String id;
   final Map<dynamic, dynamic> data;
   final FirebaseDatabase db;
-  final bool isSold;
+  final DatabaseReference soldRef;
+  final bool isSoldTab;
   final bool isExpired;
+  final bool isSoldFromUserNode;
 
   const _YourListingTile({
     required this.id,
     required this.data,
     required this.db,
-    this.isSold = false,
+    required this.soldRef,
+    this.isSoldTab = false,
     this.isExpired = false,
+    this.isSoldFromUserNode = false,
   });
 
   @override
@@ -214,11 +237,12 @@ class _YourListingTile extends StatelessWidget {
     final expiry = DateTime.fromMillisecondsSinceEpoch(
       createdAt,
     ).add(const Duration(days: 7));
-    final double hoursLeft = expiry
-        .difference(DateTime.now())
-        .inHours
-        .toDouble();
+    final double hoursLeft =
+        expiry.difference(DateTime.now()).inHours.toDouble();
     final int daysLeft = (hoursLeft / 24).ceil().clamp(0, 7);
+
+    final cardColor = isSoldTab ? Colors.grey.shade300 : Colors.grey.shade100;
+    final textColor = isSoldTab ? Colors.grey.shade700 : Colors.black;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -226,157 +250,144 @@ class _YourListingTile extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: Colors.grey.shade100,
+            color: cardColor,
             borderRadius: BorderRadius.circular(16),
           ),
           child: Row(
             children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: thumbUrl.isNotEmpty
-                    ? Image.network(
-                        thumbUrl,
-                        width: 72,
-                        height: 72,
-                        fit: BoxFit.cover,
-                      )
-                    : Container(
-                        width: 72,
-                        height: 72,
-                        color: Colors.grey.shade300,
-                      ),
+              Opacity(
+                opacity: isSoldTab ? 0.6 : 1.0,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: thumbUrl.isNotEmpty
+                      ? Image.network(
+                          thumbUrl,
+                          width: 72,
+                          height: 72,
+                          fit: BoxFit.cover,
+                        )
+                      : Container(
+                          width: 72,
+                          height: 72,
+                          color: Colors.grey.shade300,
+                        ),
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: const TextStyle(fontWeight: FontWeight.w700),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '₹ ${price.toStringAsFixed(0)}',
-                      style: const TextStyle(fontWeight: FontWeight.w700),
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: SizedBox(
-                            height: 36,
-                            child: ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: isSold
-                                    ? Colors.grey.shade300
-                                    : const Color(0xFFB7DFA3),
-                                foregroundColor: Colors.black,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(18),
+                child: DefaultTextStyle(
+                  style: TextStyle(color: textColor),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: const TextStyle(fontWeight: FontWeight.w700),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '₹ ${price.toStringAsFixed(0)}',
+                        style: const TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: SizedBox(
+                              height: 36,
+                              child: ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: isSoldTab
+                                      ? Colors.grey.shade400
+                                      : const Color(0xFFB7DFA3),
+                                  foregroundColor: Colors.black,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(18),
+                                  ),
+                                  elevation: 0,
                                 ),
-                                elevation: 0,
-                              ),
-                              onPressed: (isSold || isExpired)
-                                  ? null
-                                  : () async {
-                                      await db.ref('listings/$id').update({
-                                        'status': 'sold',
-                                      });
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        const SnackBar(
-                                          content: Text('Marked as sold'),
-                                        ),
-                                      );
-                                    },
-                              child: Text(
-                                isSold ? 'Sold' : 'Mark as Sold',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w700,
+                                onPressed: isSoldTab || isExpired
+                                    ? null
+                                    : () async {
+                                        // Move to soldListings and remove from listings
+                                        final soldAt = DateTime.now()
+                                            .millisecondsSinceEpoch;
+                                        await soldRef.child(id).set({
+                                          ...data,
+                                          'soldAt': soldAt,
+                                        });
+                                        await db.ref('listings/$id').remove();
+
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          const SnackBar(
+                                            content:
+                                                Text('Listing marked as sold'),
+                                          ),
+                                        );
+                                      },
+                                child: Text(
+                                  isSoldTab ? 'Sold' : 'Mark as Sold',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                  ),
                                 ),
                               ),
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        GestureDetector(
-                          onTap: () async {
-                            await db.ref('listings/$id').remove();
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Listing deleted')),
-                            );
-                          },
-                          child: Container(
-                            width: 32,
-                            height: 32,
-                            decoration: BoxDecoration(
-                              color: Colors.pink.shade100,
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(
-                              Icons.delete_outline,
-                              size: 18,
-                              color: Colors.black,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],
           ),
         ),
         const SizedBox(height: 8),
-        Row(
-          children: [
-            Text(
-              'Listing expires in $daysLeft days',
-              style: const TextStyle(fontSize: 13),
-            ),
-            const SizedBox(width: 8),
-            const Text('|'),
-            const SizedBox(width: 8),
-            SizedBox(
-              height: 28,
-              child: TextButton(
-                style: TextButton.styleFrom(
-                  backgroundColor: (isSold)
-                      ? Colors.grey.shade200
-                      : Colors.yellow.shade200,
-                  foregroundColor: Colors.black,
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
+        if (!isSoldTab) // no expiry/renew info for sold items
+          Row(
+            children: [
+              Text(
+                'Listing expires in $daysLeft days',
+                style: const TextStyle(fontSize: 13),
+              ),
+              const SizedBox(width: 8),
+              const Text('|'),
+              const SizedBox(width: 8),
+              SizedBox(
+                height: 28,
+                child: TextButton(
+                  style: TextButton.styleFrom(
+                    backgroundColor: Colors.yellow.shade200,
+                    foregroundColor: Colors.black,
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
                   ),
-                ),
-                onPressed: isSold
-                    ? null
-                    : () async {
-                        await db.ref('listings/$id').update({
-                          'createdAt': DateTime.now().millisecondsSinceEpoch,
-                          'status': 'active',
-                        });
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Listing renewed')),
-                        );
-                      },
-                child: Text(
-                  'Renew now',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: isSold ? Colors.grey : Colors.black,
+                  onPressed: () async {
+                    await db.ref('listings/$id').update({
+                      'createdAt': DateTime.now().millisecondsSinceEpoch,
+                      'status': 'active',
+                    });
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Listing renewed')),
+                    );
+                  },
+                  child: const Text(
+                    'Renew now',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.black,
+                    ),
                   ),
                 ),
               ),
-            ),
-          ],
-        ),
+            ],
+          ),
         const SizedBox(height: 16),
       ],
     );
