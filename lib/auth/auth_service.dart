@@ -1,17 +1,17 @@
-import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_database/firebase_database.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  // Use correct regional DB URL
   final DatabaseReference _db = FirebaseDatabase.instanceFor(
     app: Firebase.app(),
     databaseURL:
         'https://unibazaar-73dd2-default-rtdb.asia-southeast1.firebasedatabase.app',
   ).ref();
 
+  // ================= SIGN UP =================
   Future<User?> signUpWithEmail({
     required String name,
     required String email,
@@ -26,11 +26,9 @@ class AuthService {
     final user = credential.user;
     if (user == null) return null;
 
-    // 🔥 IMPORTANT — update FirebaseAuth display name
     await user.updateDisplayName(name);
     await user.reload();
 
-    // 🔥 Now save the profile in Realtime Database
     await _db.child('users').child(user.uid).set({
       'name': name,
       'email': email,
@@ -41,6 +39,7 @@ class AuthService {
     return user;
   }
 
+  // ================= LOGIN =================
   Future<User?> loginWithEmail({
     required String email,
     required String password,
@@ -52,6 +51,12 @@ class AuthService {
     return credential.user;
   }
 
+  // ================= FORGOT PASSWORD =================
+  Future<void> sendPasswordResetEmail(String email) async {
+    await _auth.sendPasswordResetEmail(email: email);
+  }
+
+  // ================= LOGOUT =================
   Future<void> logout() async {
     await _auth.signOut();
   }

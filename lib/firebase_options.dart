@@ -57,6 +57,8 @@ class DefaultFirebaseOptions {
     appId: '1:1087063785464:android:9e8e9dbdbb9b865a1d200d',
     messagingSenderId: '1087063785464',
     projectId: 'unibazaar-73dd2',
+    databaseURL: 'https://unibazaar-73dd2-default-rtdb.asia-southeast1.firebasedatabase.app',
     storageBucket: 'unibazaar-73dd2.firebasestorage.app',
   );
+
 }
