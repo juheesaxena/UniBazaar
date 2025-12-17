@@ -22,7 +22,6 @@ class SideMenu extends StatelessWidget {
   // 🔥 OPEN SUGGESTIONS FORM
   Future<void> _openSuggestionsForm() async {
     const String formUrl = 'https://forms.gle/Hwhzz8Qv4dyBsKof8';
-
     final Uri uri = Uri.parse(formUrl);
 
     if (!await launchUrl(
@@ -49,16 +48,43 @@ class SideMenu extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // ---------------- HEADER ----------------
-              Text(
-                displayName,
-                style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              Text(
-                displayPhone,
-                style: const TextStyle(fontSize: 16, color: Colors.white70),
+              Row(
+                children: [
+                  CircleAvatar(
+                    radius: 26,
+                    backgroundColor: Colors.white,
+                    child: Text(
+                      avatarInitial,
+                      style: const TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        displayName,
+                        style: const TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      if (displayPhone.isNotEmpty)
+                        Text(
+                          displayPhone,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: Colors.white,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                    ],
+                  ),
+                ],
               ),
 
               const SizedBox(height: 20),
@@ -66,52 +92,50 @@ class SideMenu extends StatelessWidget {
               const SizedBox(height: 20),
 
               // ---------------- SELL / YOUR LISTINGS ----------------
-              SizedBox(
-                width: double.infinity,
-                child: Column(
-                  children: [
-                    GestureDetector(
-                      onTap: () {
-                        onClose();
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const CreateListingScreen(),
-                          ),
-                        );
-                      },
-                      child: _pill(
-                        text: 'Sell your item',
-                        bg: Colors.white,
-                        textColor: Colors.black,
-                      ),
+              Column(
+                children: [
+                  GestureDetector(
+                    onTap: () {
+                      onClose();
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const CreateListingScreen(),
+                        ),
+                      );
+                    },
+                    child: _pill(
+                      text: 'Sell your item',
+                      bg: Colors.white,
+                      textColor: Colors.black,
                     ),
-                    const SizedBox(height: 12),
-                    GestureDetector(
-                      onTap: () {
-                        onClose();
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const YourListingsScreen(),
-                          ),
-                        );
-                      },
-                      child: _pill(
-                        text: 'Your listings',
-                        bg: Colors.black87,
-                        textColor: Colors.white,
-                      ),
+                  ),
+                  const SizedBox(height: 12),
+                  GestureDetector(
+                    onTap: () {
+                      onClose();
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const YourListingsScreen(),
+                        ),
+                      );
+                    },
+                    child: _pill(
+                      text: 'Your listings',
+                      bg: Colors.black87,
+                      textColor: Colors.white,
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
 
-              const SizedBox(height: 24),
+              const SizedBox(height: 28),
 
               // ---------------- MENU ITEMS ----------------
               _menuItem(
-                'Categories',
+                icon: Icons.category_outlined,
+                title: 'Categories',
                 onTap: () {
                   onClose();
                   Navigator.push(
@@ -125,7 +149,8 @@ class SideMenu extends StatelessWidget {
               ),
 
               _menuItem(
-                'Saved',
+                icon: Icons.bookmark_border,
+                title: 'Saved',
                 onTap: () {
                   onClose();
                   Navigator.push(
@@ -137,9 +162,9 @@ class SideMenu extends StatelessWidget {
                 },
               ),
 
-              // 🔥 NEW: SUGGESTIONS
               _menuItem(
-                'Suggestions',
+                icon: Icons.lightbulb_outline,
+                title: 'Suggestions',
                 onTap: () async {
                   onClose();
                   await _openSuggestionsForm();
@@ -186,17 +211,28 @@ class SideMenu extends StatelessWidget {
 
   // ---------------- HELPERS ----------------
 
-  Widget _menuItem(String name, {VoidCallback? onTap}) {
+  Widget _menuItem({
+    required IconData icon,
+    required String title,
+    VoidCallback? onTap,
+  }) {
     return InkWell(
       onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        child: Text(
-          name,
-          style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-          ),
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        child: Row(
+          children: [
+            Icon(icon, size: 22, color: Colors.black87),
+            const SizedBox(width: 14),
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
         ),
       ),
     );
