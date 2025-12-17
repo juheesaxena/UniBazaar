@@ -3,25 +3,30 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
-import 'auth/forgot_password_screen.dart';
-import 'package:unibazaar/services/chat_service.dart';
 
+import 'firebase_options.dart';
+import 'auth/forgot_password_screen.dart';
 import 'auth/phone_signup_screen.dart';
 import 'auth/phone_login_screen.dart';
-import 'firebase_options.dart';
+
 import 'side_menu.dart';
 import 'search_screen.dart';
 import 'package:unibazaar/features/categories/product_detail_screen.dart';
 import 'package:unibazaar/features/chat/inbox_screen.dart';
+import 'package:unibazaar/services/chat_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
 
-  // 🔥 MUST INITIALIZE CHAT SERVICE BEFORE runApp()
+  // ✅ Initialize once
   ChatService.instance.init();
 
-  await FirebaseAuth.instance.signOut();
+  // ❌ REMOVED AUTO LOGOUT
+  // await FirebaseAuth.instance.signOut();
+
   runApp(const UniBazaarApp());
 }
 
@@ -43,7 +48,7 @@ class UniBazaarApp extends StatelessWidget {
         '/splash': (_) => const SplashScreen(),
         '/login': (_) => const PhoneLoginScreen(),
         '/signup': (_) => const PhoneSignUpScreen(),
-        '/forgot-password': (context) => const ForgotPasswordScreen(),
+        '/forgot-password': (_) => const ForgotPasswordScreen(),
         '/home': (_) => const HomeScreen(),
       },
     );
@@ -51,7 +56,7 @@ class UniBazaarApp extends StatelessWidget {
 }
 
 // ------------------------------------------------------------
-// SPLASH SCREEN
+// SPLASH SCREEN (UNCHANGED LOGIC)
 // ------------------------------------------------------------
 
 class SplashScreen extends StatefulWidget {
@@ -65,10 +70,11 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    Timer(const Duration(seconds: 2), () async {
-      if (!mounted) return;
-      final user = FirebaseAuth.instance.currentUser;
 
+    Timer(const Duration(seconds: 2), () {
+      if (!mounted) return;
+
+      final user = FirebaseAuth.instance.currentUser;
       Navigator.pushReplacementNamed(
         context,
         user != null ? '/home' : '/login',
@@ -80,7 +86,9 @@ class _SplashScreenState extends State<SplashScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      body: Center(child: Image.asset('assets/images/unibazaar_splash.jpeg')),
+      body: Center(
+        child: Image.asset('assets/images/unibazaar_splash.jpeg'),
+      ),
     );
   }
 }
@@ -114,9 +122,6 @@ class _HomeScreenState extends State<HomeScreen>
   void initState() {
     super.initState();
 
-    // 🔥 ChatService already initialized in main(), but safe to leave here
-    ChatService.instance.init();
-
     _db = FirebaseDatabase.instanceFor(
       app: Firebase.app(),
       databaseURL:
@@ -128,11 +133,13 @@ class _HomeScreenState extends State<HomeScreen>
       duration: const Duration(milliseconds: 250),
     );
 
-    _slide = CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic);
+    _slide = CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeOutCubic,
+    );
 
     _loadUserProfile();
 
-    // 🔥 unread count listener
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
       _unreadStream = _chatService.getUnreadMessageCount(user.uid);
@@ -185,16 +192,13 @@ class _HomeScreenState extends State<HomeScreen>
                         ),
                       ),
                       const SizedBox(width: 12),
-
                       SizedBox(
                         height: 28,
                         child: Image.asset(
                           'assets/images/unibazaar_splash.jpeg',
                         ),
                       ),
-
                       const Spacer(),
-
                       IconButton(
                         icon: const Icon(Icons.search),
                         onPressed: () {
@@ -210,8 +214,6 @@ class _HomeScreenState extends State<HomeScreen>
                           );
                         },
                       ),
-
-                      // 🔥 DM ICON + BADGE
                       GestureDetector(
                         onTap: () {
                           Navigator.push(
@@ -226,22 +228,19 @@ class _HomeScreenState extends State<HomeScreen>
                           children: [
                             const CircleAvatar(
                               radius: 18,
-                              backgroundImage: AssetImage(
-                                "assets/images/dm_pic.jpeg",
-                              ),
+                              backgroundImage:
+                                  AssetImage("assets/images/dm_pic.jpeg"),
                             ),
                             Positioned(
                               right: -4,
                               top: -4,
                               child: StreamBuilder<int>(
                                 stream: _unreadStream,
-                                builder: (context, snapshot) {
+                                builder: (_, snapshot) {
                                   final unread = snapshot.data ?? 0;
-
                                   if (unread == 0) {
                                     return const SizedBox.shrink();
                                   }
-
                                   return Container(
                                     padding: const EdgeInsets.all(4),
                                     decoration: const BoxDecoration(
@@ -267,7 +266,6 @@ class _HomeScreenState extends State<HomeScreen>
                   ),
                 ),
 
-                // ---------------- LISTINGS ----------------
                 const Padding(
                   padding: EdgeInsets.symmetric(horizontal: 16),
                   child: Align(
@@ -293,11 +291,11 @@ class _HomeScreenState extends State<HomeScreen>
 
                       final raw = snapshot.data!.snapshot.value
                           as Map<dynamic, dynamic>;
+
                       final entries = raw.entries.toList()
                         ..sort(
-                          (a, b) => (b.value["createdAt"] ?? 0).compareTo(
-                            a.value["createdAt"] ?? 0,
-                          ),
+                          (a, b) => (b.value["createdAt"] ?? 0)
+                              .compareTo(a.value["createdAt"] ?? 0),
                         );
 
                       return Padding(
@@ -316,11 +314,6 @@ class _HomeScreenState extends State<HomeScreen>
                           ),
                           itemBuilder: (context, index) {
                             final listing = entries[index].value as Map;
-
-                            final sellerUid = listing["sellerUid"] ??
-                                listing["ownerId"] ??
-                                "";
-
                             final images =
                                 (listing["images"] ?? []) as List<dynamic>;
                             final thumb = images.isNotEmpty ? images[0] : "";
@@ -340,7 +333,7 @@ class _HomeScreenState extends State<HomeScreen>
                                       isNegotiable:
                                           listing["negotiable"] ?? true,
                                       college: listing["college"] ?? "",
-                                      sellerUid: sellerUid,
+                                      sellerUid: listing["sellerUid"] ?? "",
                                       sellerName: listing["sellerName"] ??
                                           "Unknown Seller",
                                       listingId: entries[index].key as String,
@@ -365,14 +358,15 @@ class _HomeScreenState extends State<HomeScreen>
             ),
           ),
 
-          // ---------------- SIDE MENU OVERLAY ----------------
+          // ---------------- SIDE MENU OVERLAY (FIXED) ----------------
           if (_isMenuOpen)
-            GestureDetector(
-              onTap: () {
+            ModalBarrier(
+              color: Colors.black.withOpacity(0.4),
+              dismissible: true,
+              onDismiss: () {
                 _controller.reverse();
                 setState(() => _isMenuOpen = false);
               },
-              child: Container(color: Colors.black.withOpacity(0.4)),
             ),
 
           AnimatedBuilder(
@@ -444,7 +438,6 @@ class _ListingGridCard extends StatelessWidget {
                   )
                 : Container(
                     height: imgSize,
-                    width: double.infinity,
                     color: Colors.grey.shade300,
                   ),
           ),
@@ -466,7 +459,10 @@ class _ListingGridCard extends StatelessWidget {
             style: const TextStyle(fontWeight: FontWeight.w600),
           ),
           const Spacer(),
-          Text(priceText, style: const TextStyle(fontWeight: FontWeight.bold)),
+          Text(
+            priceText,
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
         ],
       ),
     );
