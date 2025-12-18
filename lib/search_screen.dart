@@ -47,6 +47,7 @@ class _SearchScreenState extends State<SearchScreen> {
                   children: [
                     _CategoryTile(
                       label: 'Electronics',
+                      icon: Icons.devices, // phone / laptop
                       color: const Color(0xFFB8E6FF),
                       onTap: () {
                         Navigator.push(
@@ -61,6 +62,7 @@ class _SearchScreenState extends State<SearchScreen> {
                     ),
                     _CategoryTile(
                       label: 'Household',
+                      icon: Icons.chair_outlined,
                       color: const Color(0xFFFFF3B0),
                       onTap: () {
                         Navigator.push(
@@ -75,6 +77,7 @@ class _SearchScreenState extends State<SearchScreen> {
                     ),
                     _CategoryTile(
                       label: 'Fitness',
+                      icon: Icons.fitness_center,
                       color: const Color(0xFFFFB3B8),
                       onTap: () {
                         Navigator.push(
@@ -89,13 +92,14 @@ class _SearchScreenState extends State<SearchScreen> {
                     ),
                     _CategoryTile(
                       label: 'Beauty',
+                      icon: Icons.brush_outlined,
                       color: const Color(0xFFFFB3FF),
                       onTap: () {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
                             builder: (_) => const CategoryListingsScreen(
-                              category: 'Beauty',
+                              category: 'Fashion and Beauty',
                             ),
                           ),
                         );
@@ -103,6 +107,7 @@ class _SearchScreenState extends State<SearchScreen> {
                     ),
                     _CategoryTile(
                       label: 'Two Wheelers',
+                      icon: Icons.pedal_bike,
                       color: const Color(0xFFB8FFB8),
                       onTap: () {
                         Navigator.push(
@@ -117,6 +122,7 @@ class _SearchScreenState extends State<SearchScreen> {
                     ),
                     _CategoryTile(
                       label: 'Kitchen',
+                      icon: Icons.restaurant_menu,
                       color: const Color(0xFFB8C8FF),
                       onTap: () {
                         Navigator.push(
@@ -124,6 +130,36 @@ class _SearchScreenState extends State<SearchScreen> {
                           MaterialPageRoute(
                             builder: (_) => const CategoryListingsScreen(
                               category: 'Kitchen',
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                    _CategoryTile(
+                      label: 'Academics',
+                      icon: Icons.menu_book,
+                      color: const Color(0xFFE0D4FF),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const CategoryListingsScreen(
+                              category: 'Academics',
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                    _CategoryTile(
+                      label: 'Fashion',
+                      icon: Icons.checkroom,
+                      color: const Color(0xFFFFD6E8),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const CategoryListingsScreen(
+                              category: 'Fashion',
                             ),
                           ),
                         );
@@ -142,11 +178,13 @@ class _SearchScreenState extends State<SearchScreen> {
 
 class _CategoryTile extends StatelessWidget {
   final String label;
+  final IconData icon;
   final Color color;
   final VoidCallback onTap;
 
   const _CategoryTile({
     required this.label,
+    required this.icon,
     required this.color,
     required this.onTap,
   });
@@ -161,12 +199,17 @@ class _CategoryTile extends StatelessWidget {
           color: color,
           borderRadius: BorderRadius.circular(18),
         ),
-        child: Center(
-          child: Text(
-            label,
-            style: const TextStyle(fontWeight: FontWeight.w600),
-            textAlign: TextAlign.center,
-          ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 24, color: Colors.black87),
+            const SizedBox(height: 8),
+            Text(
+              label,
+              style: const TextStyle(fontWeight: FontWeight.w600),
+              textAlign: TextAlign.center,
+            ),
+          ],
         ),
       ),
     );

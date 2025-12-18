@@ -37,10 +37,14 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
     'Beauty',
     'Bicycles',
     'Kitchen',
+    'Academics', // ✅ new
+    'Fashion',
   ];
 
   String _selectedCollege = 'MIT';
   final List<String> _colleges = ['MIT', 'KMC', 'MSAP', 'MSME', 'TAPMI', 'DOC'];
+
+  bool _isSubmitting = false; // 🔒 prevent double taps
 
   @override
   Widget build(BuildContext context) {
@@ -67,16 +71,18 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
             const SizedBox(height: 8),
 
             GestureDetector(
-              onTap: () async {
-                if (_images.length >= 5) return;
+              onTap: _isSubmitting
+                  ? null
+                  : () async {
+                      if (_images.length >= 5) return;
 
-                final XFile? picked = await _picker.pickImage(
-                  source: ImageSource.gallery,
-                );
-                if (picked != null) {
-                  setState(() => _images.add(picked));
-                }
-              },
+                      final XFile? picked = await _picker.pickImage(
+                        source: ImageSource.gallery,
+                      );
+                      if (picked != null) {
+                        setState(() => _images.add(picked));
+                      }
+                    },
               child: Container(
                 width: double.infinity,
                 height: 120,
@@ -144,11 +150,13 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
             ),
             const SizedBox(height: 8),
             DropdownButtonFormField<String>(
-              initialValue: _selectedCategory,
+              value: _selectedCategory,
               items: _categories
                   .map((cat) => DropdownMenuItem(value: cat, child: Text(cat)))
                   .toList(),
-              onChanged: (value) => setState(() => _selectedCategory = value!),
+              onChanged: _isSubmitting
+                  ? null
+                  : (value) => setState(() => _selectedCategory = value!),
               decoration: const InputDecoration(border: OutlineInputBorder()),
             ),
             const SizedBox(height: 24),
@@ -160,11 +168,13 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
             ),
             const SizedBox(height: 8),
             DropdownButtonFormField<String>(
-              initialValue: _selectedCollege,
+              value: _selectedCollege,
               items: _colleges
                   .map((c) => DropdownMenuItem(value: c, child: Text(c)))
                   .toList(),
-              onChanged: (value) => setState(() => _selectedCollege = value!),
+              onChanged: _isSubmitting
+                  ? null
+                  : (value) => setState(() => _selectedCollege = value!),
               decoration: const InputDecoration(border: OutlineInputBorder()),
             ),
             const SizedBox(height: 24),
@@ -232,91 +242,29 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
               height: 48,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFAEDC98),
+                  backgroundColor: _isSubmitting
+                      ? Colors.grey.shade300
+                      : const Color(0xFFAEDC98),
                   foregroundColor: Colors.black,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
                 ),
-                onPressed: () async {
-                  try {
-                    final user = FirebaseAuth.instance.currentUser;
-                    if (user == null) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('You must be logged in')),
-                      );
-                      return;
-                    }
-
-                    // VALIDATE SELLER NAME
-                    if (_sellerNameCtrl.text.trim().isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Please enter seller name'),
+                onPressed: _isSubmitting ? null : _submitListing,
+                child: _isSubmitting
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor:
+                              AlwaysStoppedAnimation<Color>(Colors.black),
                         ),
-                      );
-                      return;
-                    }
-
-                    final sellerName = _sellerNameCtrl.text.trim();
-
-                    final price = double.tryParse(_priceCtrl.text.trim());
-                    if (price == null) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Invalid price')),
-                      );
-                      return;
-                    }
-
-                    final db = FirebaseDatabase.instanceFor(
-                      app: Firebase.app(),
-                      databaseURL:
-                          'https://unibazaar-73dd2-default-rtdb.asia-southeast1.firebasedatabase.app',
-                    );
-
-                    final ref = db.ref('listings').push();
-
-                    // upload images
-                    final uploader = const CloudinaryUploader();
-                    final List<String> urls = [];
-                    for (final img in _images) {
-                      urls.add(await uploader.uploadImage(File(img.path)));
-                    }
-
-                    // WRITE DATA WITH SELLER NAME FIELD
-                    await ref.set({
-                      'productName': _productNameCtrl.text.trim(),
-                      'description': _descriptionCtrl.text.trim(),
-                      'price': price,
-                      'negotiable': _negotiable,
-                      'condition': _condition,
-                      'category': _selectedCategory,
-                      'college': _selectedCollege,
-
-                      /// ⭐ ADDED FIELD HERE
-                      'sellerName': sellerName,
-                      'sellerUid': user.uid,
-
-                      'ownerId': user.uid,
-                      'ownerPhone': user.phoneNumber ?? '',
-                      'createdAt': DateTime.now().millisecondsSinceEpoch,
-                      'images': urls,
-                    });
-
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Listing created')),
-                    );
-                    Navigator.pop(context);
-                  } catch (e) {
-                    ScaffoldMessenger.of(
-                      context,
-                    ).showSnackBar(SnackBar(content: Text('Error: $e')));
-                  }
-                },
-                child: const Text(
-                  'Sell your Item',
-                  style: TextStyle(fontWeight: FontWeight.w700),
-                ),
+                      )
+                    : const Text(
+                        'Sell your Item',
+                        style: TextStyle(fontWeight: FontWeight.w700),
+                      ),
               ),
             ),
           ],
@@ -325,13 +273,92 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
     );
   }
 
+  Future<void> _submitListing() async {
+    setState(() => _isSubmitting = true);
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('You must be logged in')),
+        );
+        return;
+      }
+
+      // VALIDATE SELLER NAME
+      if (_sellerNameCtrl.text.trim().isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please enter seller name'),
+          ),
+        );
+        return;
+      }
+
+      final sellerName = _sellerNameCtrl.text.trim();
+
+      final price = double.tryParse(_priceCtrl.text.trim());
+      if (price == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Invalid price')),
+        );
+        return;
+      }
+
+      final db = FirebaseDatabase.instanceFor(
+        app: Firebase.app(),
+        databaseURL:
+            'https://unibazaar-73dd2-default-rtdb.asia-southeast1.firebasedatabase.app',
+      );
+
+      final ref = db.ref('listings').push();
+
+      // upload images
+      final uploader = const CloudinaryUploader();
+      final List<String> urls = [];
+      for (final img in _images) {
+        urls.add(await uploader.uploadImage(File(img.path)));
+      }
+
+      // WRITE DATA WITH SELLER NAME FIELD
+      await ref.set({
+        'productName': _productNameCtrl.text.trim(),
+        'description': _descriptionCtrl.text.trim(),
+        'price': price,
+        'negotiable': _negotiable,
+        'condition': _condition,
+        'category': _selectedCategory,
+        'college': _selectedCollege,
+        'sellerName': sellerName,
+        'sellerUid': user.uid,
+        'ownerId': user.uid,
+        'ownerPhone': user.phoneNumber ?? '',
+        'createdAt': DateTime.now().millisecondsSinceEpoch,
+        'images': urls,
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Listing created')),
+      );
+      Navigator.pop(context);
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
+    }
+  }
+
   Widget _buildRadioOption(String label, bool value) {
     return Row(
       children: [
         Radio<bool>(
           value: value,
           groupValue: _negotiable,
-          onChanged: (v) => setState(() => _negotiable = v!),
+          onChanged:
+              _isSubmitting ? null : (v) => setState(() => _negotiable = v!),
         ),
         Text(label),
       ],
@@ -344,7 +371,8 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
       label: Text(label),
       selected: selected,
       selectedColor: color,
-      onSelected: (_) => setState(() => _condition = label),
+      onSelected:
+          _isSubmitting ? null : (_) => setState(() => _condition = label),
     );
   }
 }

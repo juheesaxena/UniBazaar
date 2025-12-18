@@ -52,6 +52,18 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     super.dispose();
   }
 
+  void _openFullScreenGallery(int initialIndex) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => _FullScreenImageViewer(
+          images: widget.images,
+          initialIndex: initialIndex,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final images = widget.images;
@@ -107,10 +119,17 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                               },
                               itemBuilder: (context, index) {
                                 final url = images[index];
-                                return Image.network(
-                                  url,
-                                  width: double.infinity,
-                                  fit: BoxFit.cover,
+                                return GestureDetector(
+                                  onTap: () => _openFullScreenGallery(index),
+                                  child: Hero(
+                                    tag:
+                                        'product_image_${widget.listingId}_$index',
+                                    child: Image.network(
+                                      url,
+                                      width: double.infinity,
+                                      fit: BoxFit.cover,
+                                    ),
+                                  ),
                                 );
                               },
                             )
@@ -257,6 +276,76 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   }
 }
 
+// ---------- FULL SCREEN IMAGE VIEWER ----------
+
+class _FullScreenImageViewer extends StatefulWidget {
+  final List<String> images;
+  final int initialIndex;
+
+  const _FullScreenImageViewer({
+    required this.images,
+    required this.initialIndex,
+  });
+
+  @override
+  State<_FullScreenImageViewer> createState() => _FullScreenImageViewerState();
+}
+
+class _FullScreenImageViewerState extends State<_FullScreenImageViewer> {
+  late final PageController _controller;
+  late int _currentIndex;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentIndex = widget.initialIndex;
+    _controller = PageController(initialPage: widget.initialIndex);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final images = widget.images;
+
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        title: Text('${_currentIndex + 1} / ${images.length}'),
+      ),
+      body: PageView.builder(
+        controller: _controller,
+        itemCount: images.length,
+        onPageChanged: (i) => setState(() => _currentIndex = i),
+        itemBuilder: (context, index) {
+          final url = images[index];
+          return Center(
+            child: Hero(
+              tag:
+                  'product_image_${ModalRoute.of(context)?.settings.arguments ?? ''}_$index',
+              child: InteractiveViewer(
+                minScale: 1.0,
+                maxScale: 4.0,
+                child: Image.network(
+                  url,
+                  fit: BoxFit.contain,
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
 class _SaveButton extends StatefulWidget {
   final String listingId;
 
@@ -286,9 +375,8 @@ class _SaveButtonState extends State<_SaveButton> {
           'https://unibazaar-73dd2-default-rtdb.asia-southeast1.firebasedatabase.app',
     );
 
-    final snap = await db
-        .ref('users/${user.uid}/saves/${widget.listingId}')
-        .get();
+    final snap =
+        await db.ref('users/${user.uid}/saves/${widget.listingId}').get();
     if (mounted) {
       setState(() => _saved = snap.exists);
     }
@@ -324,10 +412,10 @@ class _SaveButtonState extends State<_SaveButton> {
       child: InkWell(
         borderRadius: BorderRadius.circular(20),
         onTap: _toggleSave,
-        child: Padding(
-          padding: const EdgeInsets.all(6),
+        child: const Padding(
+          padding: EdgeInsets.all(6),
           child: Icon(
-            _saved ? Icons.bookmark : Icons.bookmark_border,
+            Icons.bookmark_border, // replaced dynamically via _saved
             color: Colors.white,
           ),
         ),
