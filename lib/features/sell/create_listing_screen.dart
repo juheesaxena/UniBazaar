@@ -150,7 +150,7 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
             ),
             const SizedBox(height: 8),
             DropdownButtonFormField<String>(
-              value: _selectedCategory,
+              initialValue: _selectedCategory,
               items: _categories
                   .map((cat) => DropdownMenuItem(value: cat, child: Text(cat)))
                   .toList(),
@@ -168,7 +168,7 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
             ),
             const SizedBox(height: 8),
             DropdownButtonFormField<String>(
-              value: _selectedCollege,
+              initialValue: _selectedCollege,
               items: _colleges
                   .map((c) => DropdownMenuItem(value: c, child: Text(c)))
                   .toList(),
