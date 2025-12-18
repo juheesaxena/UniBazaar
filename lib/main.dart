@@ -229,7 +229,7 @@ class _HomeScreenState extends State<HomeScreen>
                             const CircleAvatar(
                               radius: 18,
                               backgroundImage:
-                                  AssetImage("assets/images/dm_pic.jpeg"),
+                                  AssetImage("assets/images/send_icon.jpg"),
                             ),
                             Positioned(
                               right: -4,

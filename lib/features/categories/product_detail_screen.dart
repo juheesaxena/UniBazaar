@@ -412,11 +412,17 @@ class _SaveButtonState extends State<_SaveButton> {
       child: InkWell(
         borderRadius: BorderRadius.circular(20),
         onTap: _toggleSave,
-        child: const Padding(
-          padding: EdgeInsets.all(6),
-          child: Icon(
-            Icons.bookmark_border, // replaced dynamically via _saved
-            color: Colors.white,
+        child: Padding(
+          padding: const EdgeInsets.all(6),
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 200),
+            transitionBuilder: (child, animation) =>
+                ScaleTransition(scale: animation, child: child),
+            child: Icon(
+              _saved ? Icons.bookmark : Icons.bookmark_border,
+              key: ValueKey<bool>(_saved),
+              color: Colors.white,
+            ),
           ),
         ),
       ),
