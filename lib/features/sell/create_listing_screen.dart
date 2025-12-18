@@ -35,7 +35,7 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
     'Household',
     'Fitness',
     'Beauty',
-    'Bicycles',
+    'Two Wheelers',
     'Kitchen',
     'Academics', // ✅ new
     'Fashion',
