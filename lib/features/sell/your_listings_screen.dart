@@ -71,11 +71,18 @@ class _YourListingsScreenState extends State<YourListingsScreen> {
             for (final e in allEntries) {
               final m = e.value as Map;
               final int createdAt = (m['createdAt'] ?? 0) as int;
-              final expiry = DateTime.fromMillisecondsSinceEpoch(
-                createdAt,
-              ).add(const Duration(days: 7));
+              final expiry = DateTime.fromMillisecondsSinceEpoch(createdAt)
+                  .add(const Duration(days: 7));
 
-              if (expiry.isBefore(now)) {
+              final String status = (m['status'] ?? 'active') as String;
+              final bool isExpiredByTime = expiry.isBefore(now);
+
+              // If expired by time but not yet marked, mark once.
+              if (isExpiredByTime && status != 'expired') {
+                db.ref('listings/${e.key}').update({'status': 'expired'});
+              }
+
+              if (status == 'expired' || isExpiredByTime) {
                 expiredEntries.add(e);
               } else {
                 currentEntries.add(e);

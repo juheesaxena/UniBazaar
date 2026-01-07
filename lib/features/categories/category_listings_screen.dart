@@ -41,10 +41,8 @@ class _CategoryListingsScreenState extends State<CategoryListingsScreen> {
     );
 
     // ALWAYS restricted to this category
-    final query = db
-        .ref('listings')
-        .orderByChild('category')
-        .equalTo(widget.category);
+    final query =
+        db.ref('listings').orderByChild('category').equalTo(widget.category);
 
     return Scaffold(
       appBar: AppBar(
@@ -85,9 +83,9 @@ class _CategoryListingsScreenState extends State<CategoryListingsScreen> {
           final entries = allEntries.where((e) {
             final data = e.value as Map<dynamic, dynamic>;
 
-            // hide sold listings
+            // hide sold and expired listings
             final status = (data['status'] ?? 'active') as String;
-            if (status == 'sold') return false;
+            if (status == 'sold' || status == 'expired') return false;
 
             // price filter
             final priceNum = (data['price'] as num?)?.toDouble() ?? 0.0;
@@ -177,9 +175,8 @@ class _CategoryListingsScreenState extends State<CategoryListingsScreen> {
                     final sellerName = (data['sellerName'] ?? '') as String;
 
                     final images = (data['images'] ?? []) as List;
-                    final thumbUrl = images.isNotEmpty
-                        ? images.first as String
-                        : null;
+                    final thumbUrl =
+                        images.isNotEmpty ? images.first as String : null;
 
                     return InkWell(
                       onTap: () {
@@ -245,7 +242,6 @@ class _CategoryListingsScreenState extends State<CategoryListingsScreen> {
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
                   ),
                   const SizedBox(height: 16),
-
                   const Text(
                     'Price range',
                     style: TextStyle(fontWeight: FontWeight.w600),
@@ -275,7 +271,6 @@ class _CategoryListingsScreenState extends State<CategoryListingsScreen> {
                     ],
                   ),
                   const SizedBox(height: 16),
-
                   const Text(
                     'College',
                     style: TextStyle(fontWeight: FontWeight.w600),
@@ -300,7 +295,6 @@ class _CategoryListingsScreenState extends State<CategoryListingsScreen> {
                     ),
                   ),
                   const SizedBox(height: 24),
-
                   SizedBox(
                     width: double.infinity,
                     height: 44,

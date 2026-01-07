@@ -56,7 +56,7 @@ class UniBazaarApp extends StatelessWidget {
 }
 
 // ------------------------------------------------------------
-// SPLASH SCREEN (UNCHANGED LOGIC)
+// SPLASH SCREEN
 // ------------------------------------------------------------
 
 class SplashScreen extends StatefulWidget {
@@ -292,11 +292,25 @@ class _HomeScreenState extends State<HomeScreen>
                       final raw = snapshot.data!.snapshot.value
                           as Map<dynamic, dynamic>;
 
-                      final entries = raw.entries.toList()
+                      final allEntries = raw.entries.toList()
                         ..sort(
                           (a, b) => (b.value["createdAt"] ?? 0)
                               .compareTo(a.value["createdAt"] ?? 0),
                         );
+
+                      // ✅ filter out expired (and optionally sold) listings
+                      final entries = allEntries.where((e) {
+                        final m = e.value as Map;
+                        final status = (m['status'] ?? 'active') as String;
+                        if (status == 'expired') return false;
+                        // If you also want to hide sold from home, uncomment:
+                        // if (status == 'sold') return false;
+                        return true;
+                      }).toList();
+
+                      if (entries.isEmpty) {
+                        return const Center(child: Text("No listings yet"));
+                      }
 
                       return Padding(
                         padding: const EdgeInsets.symmetric(
@@ -358,7 +372,7 @@ class _HomeScreenState extends State<HomeScreen>
             ),
           ),
 
-          // ---------------- SIDE MENU OVERLAY (FIXED) ----------------
+          // ---------------- SIDE MENU OVERLAY ----------------
           if (_isMenuOpen)
             ModalBarrier(
               color: Colors.black.withOpacity(0.4),
