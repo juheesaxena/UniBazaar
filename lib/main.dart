@@ -21,11 +21,7 @@ Future<void> main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
-  // ✅ Initialize once
   ChatService.instance.init();
-
-  // ❌ REMOVED AUTO LOGOUT
-  // await FirebaseAuth.instance.signOut();
 
   runApp(const UniBazaarApp());
 }
@@ -56,7 +52,7 @@ class UniBazaarApp extends StatelessWidget {
 }
 
 // ------------------------------------------------------------
-// SPLASH SCREEN (UNCHANGED LOGIC)
+// SPLASH SCREEN
 // ------------------------------------------------------------
 
 class SplashScreen extends StatefulWidget {
@@ -280,6 +276,7 @@ class _HomeScreenState extends State<HomeScreen>
                   ),
                 ),
 
+                // ---------------- FIXED LISTINGS ----------------
                 Expanded(
                   child: StreamBuilder<DatabaseEvent>(
                     stream: _db.ref("listings").onValue,
@@ -291,12 +288,29 @@ class _HomeScreenState extends State<HomeScreen>
 
                       final raw = snapshot.data!.snapshot.value
                           as Map<dynamic, dynamic>;
+                      final now = DateTime.now();
 
-                      final entries = raw.entries.toList()
+                      // ✅ FILTER ONLY ACTIVE (NON-EXPIRED) LISTINGS
+                      final entries = raw.entries.where((e) {
+                        final data = e.value as Map;
+                        final int createdAt = (data['createdAt'] ?? 0) as int;
+
+                        if (createdAt == 0) return false;
+
+                        final expiry = DateTime.fromMillisecondsSinceEpoch(
+                          createdAt,
+                        ).add(const Duration(days: 7));
+
+                        return expiry.isAfter(now);
+                      }).toList()
                         ..sort(
                           (a, b) => (b.value["createdAt"] ?? 0)
                               .compareTo(a.value["createdAt"] ?? 0),
                         );
+
+                      if (entries.isEmpty) {
+                        return const Center(child: Text("No active listings"));
+                      }
 
                       return Padding(
                         padding: const EdgeInsets.symmetric(
@@ -333,7 +347,7 @@ class _HomeScreenState extends State<HomeScreen>
                                       isNegotiable:
                                           listing["negotiable"] ?? true,
                                       college: listing["college"] ?? "",
-                                      sellerUid: listing["sellerUid"] ?? "",
+                                      sellerUid: listing["ownerId"] ?? "",
                                       sellerName: listing["sellerName"] ??
                                           "Unknown Seller",
                                       listingId: entries[index].key as String,
@@ -358,7 +372,7 @@ class _HomeScreenState extends State<HomeScreen>
             ),
           ),
 
-          // ---------------- SIDE MENU OVERLAY (FIXED) ----------------
+          // ---------------- SIDE MENU ----------------
           if (_isMenuOpen)
             ModalBarrier(
               color: Colors.black.withOpacity(0.4),

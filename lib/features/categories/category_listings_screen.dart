@@ -40,11 +40,8 @@ class _CategoryListingsScreenState extends State<CategoryListingsScreen> {
           'https://unibazaar-73dd2-default-rtdb.asia-southeast1.firebasedatabase.app',
     );
 
-    // ALWAYS restricted to this category
-    final query = db
-        .ref('listings')
-        .orderByChild('category')
-        .equalTo(widget.category);
+    final query =
+        db.ref('listings').orderByChild('category').equalTo(widget.category);
 
     return Scaffold(
       appBar: AppBar(
@@ -77,13 +74,22 @@ class _CategoryListingsScreenState extends State<CategoryListingsScreen> {
               final bm = b.value as Map;
               final at = (am['createdAt'] ?? 0) as int;
               final bt = (bm['createdAt'] ?? 0) as int;
-              return bt.compareTo(at); // newest first
+              return bt.compareTo(at);
             });
 
+          final now = DateTime.now();
           final q = _searchQuery.trim().toLowerCase();
 
           final entries = allEntries.where((e) {
             final data = e.value as Map<dynamic, dynamic>;
+
+            // 🔴 EXPIRY FILTER (MAIN FIX)
+            final int createdAt = (data['createdAt'] ?? 0) as int;
+            if (createdAt == 0) return false;
+
+            final expiry = DateTime.fromMillisecondsSinceEpoch(createdAt)
+                .add(const Duration(days: 7));
+            if (expiry.isBefore(now)) return false;
 
             // hide sold listings
             final status = (data['status'] ?? 'active') as String;
@@ -99,25 +105,22 @@ class _CategoryListingsScreenState extends State<CategoryListingsScreen> {
               return false;
             }
 
-            // search by name / description, still within this category
+            // search by name / description
             if (q.isNotEmpty) {
               final name = (data['productName'] ?? '').toString().toLowerCase();
               final desc = (data['description'] ?? '').toString().toLowerCase();
               if (!name.contains(q) && !desc.contains(q)) return false;
             }
 
-            return true; // already limited to this category by query
+            return true;
           }).toList();
 
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // search bar (category‑only)
               Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
-                ),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 child: TextField(
                   onChanged: (value) {
                     setState(() => _searchQuery = value);
@@ -147,72 +150,76 @@ class _CategoryListingsScreenState extends State<CategoryListingsScreen> {
               ),
               if (_searchQuery.trim().isNotEmpty)
                 Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 4,
-                  ),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                   child: Text(
                     'Showing results for “${_searchQuery.trim()}”',
                     style: const TextStyle(color: Colors.grey),
                   ),
                 ),
               const SizedBox(height: 4),
-
               Expanded(
-                child: ListView.separated(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: entries.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 12),
-                  itemBuilder: (context, index) {
-                    final data = entries[index].value as Map<dynamic, dynamic>;
-                    final productName = (data['productName'] ?? '') as String;
-                    final description = (data['description'] ?? '') as String;
-                    final price = (data['price'] as num?)?.toDouble() ?? 0.0;
-                    final condition = (data['condition'] ?? 'Good') as String;
-                    final negotiable = (data['negotiable'] ?? true) as bool;
-                    final college = (data['college'] ?? '') as String;
+                child: entries.isEmpty
+                    ? const Center(child: Text('No active listings found'))
+                    : ListView.separated(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: entries.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 12),
+                        itemBuilder: (context, index) {
+                          final data =
+                              entries[index].value as Map<dynamic, dynamic>;
+                          final productName =
+                              (data['productName'] ?? '') as String;
+                          final description =
+                              (data['description'] ?? '') as String;
+                          final price =
+                              (data['price'] as num?)?.toDouble() ?? 0.0;
+                          final condition =
+                              (data['condition'] ?? 'Good') as String;
+                          final negotiable =
+                              (data['negotiable'] ?? true) as bool;
+                          final college = (data['college'] ?? '') as String;
 
-                    // seller info
-                    final sellerUid = (data['sellerUid'] ?? '') as String;
-                    final sellerName = (data['sellerName'] ?? '') as String;
+                          final sellerUid = (data['ownerId'] ?? '') as String;
+                          final sellerName =
+                              (data['sellerName'] ?? '') as String;
 
-                    final images = (data['images'] ?? []) as List;
-                    final thumbUrl = images.isNotEmpty
-                        ? images.first as String
-                        : null;
+                          final images = (data['images'] ?? []) as List;
+                          final thumbUrl =
+                              images.isNotEmpty ? images.first as String : null;
 
-                    return InkWell(
-                      onTap: () {
-                        if (thumbUrl == null) return;
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => ProductDetailScreen(
-                              categoryName: widget.category,
-                              title: productName,
+                          return InkWell(
+                            onTap: () {
+                              if (thumbUrl == null) return;
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => ProductDetailScreen(
+                                    categoryName: widget.category,
+                                    title: productName,
+                                    description: description,
+                                    price: price,
+                                    condition: condition,
+                                    images: images.cast<String>(),
+                                    isNegotiable: negotiable,
+                                    college: college,
+                                    sellerUid: sellerUid,
+                                    sellerName: sellerName,
+                                    listingId: entries[index].key as String,
+                                  ),
+                                ),
+                              );
+                            },
+                            child: _ListingTile(
+                              productName: productName,
                               description: description,
-                              price: price,
-                              condition: condition,
-                              images: images.cast<String>(),
-                              isNegotiable: negotiable,
+                              priceText: price > 0 ? '₹ $price' : '',
+                              thumbnailUrl: thumbUrl,
                               college: college,
-                              sellerUid: sellerUid,
-                              sellerName: sellerName,
-                              listingId: entries[index].key as String,
                             ),
-                          ),
-                        );
-                      },
-                      child: _ListingTile(
-                        productName: productName,
-                        description: description,
-                        priceText: price > 0 ? '₹ $price' : '',
-                        thumbnailUrl: thumbUrl,
-                        college: college,
+                          );
+                        },
                       ),
-                    );
-                  },
-                ),
               ),
             ],
           );
@@ -245,7 +252,6 @@ class _CategoryListingsScreenState extends State<CategoryListingsScreen> {
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
                   ),
                   const SizedBox(height: 16),
-
                   const Text(
                     'Price range',
                     style: TextStyle(fontWeight: FontWeight.w600),
@@ -275,7 +281,6 @@ class _CategoryListingsScreenState extends State<CategoryListingsScreen> {
                     ],
                   ),
                   const SizedBox(height: 16),
-
                   const Text(
                     'College',
                     style: TextStyle(fontWeight: FontWeight.w600),
@@ -300,7 +305,6 @@ class _CategoryListingsScreenState extends State<CategoryListingsScreen> {
                     ),
                   ),
                   const SizedBox(height: 24),
-
                   SizedBox(
                     width: double.infinity,
                     height: 44,
